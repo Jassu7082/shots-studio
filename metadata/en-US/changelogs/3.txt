@@ -1,0 +1,17 @@
+🚀 What’s New
+- Automatic removal of corrupted/deleted files. Screenshots now stay in sync with the device gallery.
+- Added support for Gemini-2.5-flash and Gemini-2.5-flash-lite (default).
+- Revamped Settings UI. Settings now has separate sections, making the app bar less cluttered. :)
+
+Bug Fixes  
+- Added storage permission prompt before loading the downloaded Gemma model.
+- Fixed API key empty bug when the model is Gemma.
+- Fixed null check issues.
+- Fixed concurrent file watcher bug.
+
+Technical & Performance Improvements  
+- Server messaging can now be directed to individual platforms.
+- Addressed the 60fps locked refresh rate issue.
+- Optimized analytics to collect only necessary details.
+- Preparation for Play Store release. Register for closed testing here : https://forms.gle/mQT7EsrVLmMrZowK8
+- Fixed app crash after device reboot.

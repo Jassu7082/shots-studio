@@ -1,0 +1,21 @@
+{
+  "messages": [
+    {
+      "show": true,
+      "id": "welcome_1_8_170",
+      "title": "Here's what's new in Shots Studio 1.8.170!",
+      "message": "Say Hello to the latest version of Shots Studio! 🎉\n\n  This version is focused on improving usability and performance. Check out the changelogs for more details!\n\n-The Shots Studio Team",
+      "type": "info",
+      "priority": "high",
+      "show_once": true,
+      "valid_until": "2026-08-01T00:00:00Z",
+      "is_notification": false,
+      "version": "1.8.170",
+      "beta_only": false,
+      "action_text": "changelogs",
+      "dismiss_text": "dismiss",
+      "action_url": "https://github.com/AnsahMohammad/shots-studio/releases/download/v1.8.170",
+      "platform": "all"
+    }
+  ]
+}
