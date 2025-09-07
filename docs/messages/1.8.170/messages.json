@@ -4,7 +4,7 @@
       "show": true,
       "id": "welcome_1_8_170",
       "title": "Here's what's new in Shots Studio 1.8.170!",
-      "message": "Say Hello to the latest version of Shots Studio! 🎉\n\n  This version is focused on improving usability and performance. Check out the changelogs for more details!\n\n-The Shots Studio Team",
+      "message": "Say Hello to the latest version of Shots Studio! 🎉\n\n  This version is focused on improving usability and performance. \n\n -Automatic removal of corrupted/deleted files. \n -Added support for Gemini-2.5-flash and Gemini-2.5-flash-lite (default). \n -Revamped Settings UI. Settings now has a dedicated page \n -Addressed the 60fps frame lock to support maximum refresh rates.\n And lots of other performance and bug fixes.  \n\nCheck out the changelogs for more details! \n Thanks for your feedback!! \n\n With Love <3, \n Team Shots Studio",
       "type": "info",
       "priority": "high",
       "show_once": true,
