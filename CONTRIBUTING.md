@@ -285,6 +285,10 @@ flutter build apk --release --flavor fdroid --dart-define=BUILD_SOURCE=fdroid
 flutter build apk --release --flavor github --dart-define=BUILD_SOURCE=github
 flutter build apk --release --flavor playstore --dart-define=BUILD_SOURCE=playstore
 
+# Play Store flavor (most common for app bundles)
+flutter build appbundle --release --flavor playstore --dart-define=BUILD_SOURCE=playstore
+
+
 # Use the convenience build script
 chmod +x build_flavors.sh
 ./build_flavors.sh fdroid debug      # F-Droid debug build
