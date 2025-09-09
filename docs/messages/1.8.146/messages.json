@@ -2,6 +2,22 @@
   "messages": [
       {
         "show": true,
+        "id": "github_outage_announcement_sep09",
+        "title": "Temporary GitHub Repository Outage",
+        "message": "Hi everyone! \n\nOur GitHub repository is currently unavailable due to an automated flagging issue (similar to what happened during the last release). This means the latest release distribution on GitHub will be delayed by about 2 days. \n\nNo worries though; our GitLab mirror is fully operational, and you can download the latest version **1.8.170** from there right away. F-Droid users are not affected since builds are sourced from GitLab.\n\nWe appreciate your patience and support while GitHub is being restored. 🙏",
+        "type": "info",
+        "priority": "high",
+        "show_once": false,
+        "valid_until": "2026-08-01T00:00:00Z",
+        "is_notification": false,
+        "version": "1.8.146",
+        "beta_only": false,
+        "action_text": "Download from GitLab",
+        "dismiss_text": "Maybe Later",
+        "action_url": "https://gitlab.com/mohdansah10/shots-studio/-/releases/v1.8.170"
+      },
+      {
+        "show": true,
         "id": "play_release_invite",
         "title": "🚀 Join the Google Play Beta Release!",
         "message": "Hey beta testers! 👋\n\nThe Play Store launch is just around the corner, but we need your help first. We're looking for at least 12 awesome people to test the Play Store version of Shots-Studio for 12 days.\nIf you’re up for it, please fill out the form below.\n\nAs a thank you, you’ll get the Play Store version of the app for free! 🎉",
