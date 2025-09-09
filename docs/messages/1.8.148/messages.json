@@ -7,7 +7,7 @@
         "message": "Hi everyone! \n\nOur GitHub repository is currently unavailable due to an automated flagging issue (similar to what happened during the last release). This means the latest release distribution on GitHub will be delayed by about 2 days.\n\n Please use the gitlab mirror to refer to the source code.\n\n F-Droid users however are not affected since builds are sourced from GitLab.\n\nWe appreciate your patience and support while GitHub is being restored. 🙏",
         "type": "info",
         "priority": "high",
-        "show_once": false,
+        "show_once": true,
         "valid_until": "2026-08-01T00:00:00Z",
         "is_notification": false,
         "version": "1.8.148",
