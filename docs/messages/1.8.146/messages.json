@@ -1,7 +1,7 @@
 {
   "messages": [
       {
-        "show": true,
+        "show": false,
         "id": "github_outage_announcement_sep09",
         "title": "Temporary GitHub Repository Outage",
         "message": "Hi everyone! \n\nOur GitHub repository is currently unavailable due to an automated flagging issue (similar to what happened during the last release). This means the latest release distribution on GitHub will be delayed by about 2 days. \n\nNo worries though; our GitLab mirror is fully operational, and you can download the latest version **1.8.170** from there right away. F-Droid users are not affected since builds are sourced from GitLab.\n\nWe appreciate your patience and support while GitHub is being restored. 🙏",
