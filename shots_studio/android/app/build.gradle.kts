@@ -56,6 +56,18 @@ android {
         }
     }
 
+    sourceSets {
+        getByName("github") {
+            manifest.srcFile("src/github/AndroidManifest.xml")
+        }
+        getByName("fdroid") {
+            manifest.srcFile("src/fdroid/AndroidManifest.xml")
+        }
+        getByName("playstore") {
+            manifest.srcFile("src/playstore/AndroidManifest.xml")
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

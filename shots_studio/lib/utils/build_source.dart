@@ -11,7 +11,7 @@ enum BuildSource {
   static BuildSource get current {
     // Check if build source is defined via compile-time constants
     const String buildSourceString = String.fromEnvironment('BUILD_SOURCE');
-    
+
     if (buildSourceString.isNotEmpty) {
       // Try to find matching enum value
       for (BuildSource source in BuildSource.values) {
@@ -20,7 +20,7 @@ enum BuildSource {
         }
       }
     }
-    
+
     // Default to fdroid if not specified
     return BuildSource.fdroid;
   }
@@ -34,6 +34,17 @@ enum BuildSource {
         return true; // GitHub releases can check for updates
       case BuildSource.playstore:
         return false; // Play Store handles updates
+    }
+  }
+
+  bool get allowsInAppUpdates {
+    switch (this) {
+      case BuildSource.fdroid:
+        return false;
+      case BuildSource.github:
+        return true; // GitHub releases can handle in-app updates
+      case BuildSource.playstore:
+        return true;
     }
   }
 

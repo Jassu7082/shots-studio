@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'update_checker_service.dart';
+import 'package:shots_studio/utils/build_source.dart';
 
 /// Progress callback type for download progress
 typedef ProgressCallback = void Function(double progress, String status);
@@ -65,14 +66,27 @@ class UpdateInstallerService {
   static Future<bool> _checkInstallPermission() async {
     if (Platform.isAndroid) {
       try {
+        final buildSource = BuildSource.current;
+        if (!buildSource.allowsInAppUpdates) {
+          print(
+            'MainApp: In-App update disabled for ${buildSource.displayName} builds',
+          );
+          return false;
+        }
+
         final bool? result = await _channel.invokeMethod(
           'canRequestPackageInstalls',
         );
         return result ?? false;
       } catch (e) {
         // Fallback to permission_handler for older Android versions
-        final status = await Permission.requestInstallPackages.status;
-        return status.isGranted;
+        try {
+          final status = await Permission.requestInstallPackages.status;
+          return status.isGranted;
+        } catch (permissionError) {
+          // Permission might not be declared in manifest
+          return false;
+        }
       }
     }
     return false;
@@ -82,14 +96,27 @@ class UpdateInstallerService {
   static Future<bool> _requestInstallPermission() async {
     if (Platform.isAndroid) {
       try {
+        final buildSource = BuildSource.current;
+        if (!buildSource.allowsInAppUpdates) {
+          print(
+            'MainApp: In-App update disabled for ${buildSource.displayName} builds',
+          );
+          return false;
+        }
+
         final bool? result = await _channel.invokeMethod(
           'requestInstallPermission',
         );
         return result ?? false;
       } catch (e) {
         // Fallback to permission_handler
-        final status = await Permission.requestInstallPackages.request();
-        return status.isGranted;
+        try {
+          final status = await Permission.requestInstallPackages.request();
+          return status.isGranted;
+        } catch (permissionError) {
+          // Permission might not be declared in manifest
+          return false;
+        }
       }
     }
     return false;
@@ -207,7 +234,16 @@ class UpdateInstallerService {
 
   /// Checks if the device supports automatic updates
   static Future<bool> isUpdateSupportedOnPlatform() async {
-    return Platform.isAndroid;
+    if (!Platform.isAndroid) return false;
+
+    final buildSource = BuildSource.current;
+    if (!buildSource.allowsInAppUpdates) {
+      print(
+        'MainApp: In-App update disabled for ${buildSource.displayName} builds',
+      );
+      return false;
+    }
+    return true;
   }
 
   /// Gets estimated download size for the update

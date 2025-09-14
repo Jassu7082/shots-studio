@@ -155,31 +155,36 @@ class AboutSection extends StatelessWidget {
             }
           },
         ),
-        ListTile(
-          leading: Icon(Icons.system_update, color: theme.colorScheme.primary),
-          title: Text(
-            AppLocalizations.of(context)?.checkForUpdates ??
-                'Check for Updates',
-            style: TextStyle(color: theme.colorScheme.onSecondaryContainer),
-          ),
-          subtitle: Text(
-            'Check for app updates',
-            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          onTap: () {
-            // Log analytics for update check access
-            AnalyticsService().logFeatureUsed('manual_update_check');
+        // Only show update checker for builds that support it
+        if (BuildSource.current.allowsUpdateCheck)
+          ListTile(
+            leading: Icon(
+              Icons.system_update,
+              color: theme.colorScheme.primary,
+            ),
+            title: Text(
+              AppLocalizations.of(context)?.checkForUpdates ??
+                  'Check for Updates',
+              style: TextStyle(color: theme.colorScheme.onSecondaryContainer),
+            ),
+            subtitle: Text(
+              'Check for app updates',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            onTap: () {
+              // Log analytics for update check access
+              AnalyticsService().logFeatureUsed('manual_update_check');
 
-            // Close drawer first, then check for updates with a fresh context
-            Navigator.pop(context);
+              // Close drawer first, then check for updates with a fresh context
+              Navigator.pop(context);
 
-            // Use a post-frame callback to ensure the drawer is closed before checking updates
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              final navigatorContext = Navigator.of(context).context;
-              _checkForUpdatesManually(navigatorContext);
-            });
-          },
-        ),
+              // Use a post-frame callback to ensure the drawer is closed before checking updates
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final navigatorContext = Navigator.of(context).context;
+                _checkForUpdatesManually(navigatorContext);
+              });
+            },
+          ),
       ],
     );
   }
