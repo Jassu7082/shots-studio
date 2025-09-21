@@ -8,12 +8,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Load keystore
-val keystorePropertiesFile = rootProject.file("key.properties")
-val keystoreProperties = Properties()
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-}
+// Load keystore (only for playstore builds)
+// val keystorePropertiesFile = rootProject.file("key.properties")
+// val keystoreProperties = Properties()
+// if (keystorePropertiesFile.exists()) {
+//     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+// }
 
 android {
     namespace = "com.ansah.shots_studio"
@@ -66,14 +66,14 @@ android {
         }
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String?
-            keyPassword = keystoreProperties["keyPassword"] as String?
-            storeFile = keystoreProperties["storeFile"]?.let { file(it as String) }
-            storePassword = keystoreProperties["storePassword"] as String?
-        }
-    }
+    // signingConfigs {
+    //     create("release") {
+    //         keyAlias = keystoreProperties["keyAlias"] as String?
+    //         keyPassword = keystoreProperties["keyPassword"] as String?
+    //         storeFile = keystoreProperties["storeFile"]?.let { file(it as String) }
+    //         storePassword = keystoreProperties["storePassword"] as String?
+    //     }
+    // }
 
     sourceSets {
         getByName("github") {
@@ -89,8 +89,8 @@ android {
 
     buildTypes {
         release {
-            // Use the release signing config instead of debug
-            signingConfig = signingConfigs.getByName("release")
+            // Uses debug signing by default (uncomment below for playstore release signing)
+            // signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
