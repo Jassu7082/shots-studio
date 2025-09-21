@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
-import 'dart:math';
+import 'dart:math' as math;
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:shots_studio/models/screenshot_model.dart';
@@ -60,7 +60,8 @@ class ScreenshotDetailScreen extends StatefulWidget {
   State<ScreenshotDetailScreen> createState() => _ScreenshotDetailScreenState();
 }
 
-class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
+class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
+    with SingleTickerProviderStateMixin {
   late List<String> _tags;
   late TextEditingController _descriptionController;
   bool _isProcessingAI = false;
@@ -68,6 +69,10 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
   final AIServiceManager _aiServiceManager = AIServiceManager();
   final OCRService _ocrService = OCRService();
   bool _hardDeleteEnabled = false;
+
+  // Animation controller for simple bounce
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
@@ -78,9 +83,21 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
     ); // Track screenshot details screen access
     AnalyticsService().logScreenView('screenshot_details_screen');
 
+    // Initialize simple bounce animation
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
+
     // Check for expired reminders after the frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkExpiredReminders();
+      // Start simple bounce animation
+      _animationController.forward();
     });
 
     // Load hard delete setting
@@ -128,8 +145,249 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload settings when dependencies change (e.g., when coming back from settings)
+  }
+
+  /// Build a floating toolbar with all action buttons
+  Widget _buildFloatingToolbar() {
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Main action buttons container
+                Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: 12),
+                      _buildToolbarButton(
+                        icon: Icons.share_outlined,
+                        tooltip: 'Share',
+                        onPressed: () async {
+                          AnalyticsService().logFeatureUsed(
+                            'screenshot_shared',
+                          );
+                          final file = File(widget.screenshot.path!);
+                          if (await file.exists()) {
+                            await SharePlus.instance.share(
+                              ShareParams(
+                                text: 'Check out this screenshot!',
+                                files: [XFile(file.path)],
+                              ),
+                            );
+                          } else {
+                            SnackbarService().showError(
+                              context,
+                              'Screenshot file not found',
+                            );
+                          }
+                        },
+                      ),
+                      _buildToolbarButton(
+                        icon:
+                            widget.screenshot.reminderTime != null
+                                ? Icons.alarm
+                                : Icons.alarm_outlined,
+                        tooltip: 'Set reminder',
+                        isHighlighted: widget.screenshot.reminderTime != null,
+                        onPressed: () async {
+                          AnalyticsService().logFeatureUsed(
+                            'reminder_dialog_opened',
+                          );
+                          final result =
+                              await ReminderUtils.showReminderBottomSheet(
+                                context,
+                                widget.screenshot.reminderTime,
+                                widget.screenshot.reminderText,
+                              );
+
+                          if (result != null) {
+                            // If we received an 'expired' flag, it means the bottom sheet detected
+                            // an expired reminder and already closed itself
+                            if (result['expired'] == true) {
+                              if (mounted) {
+                                setState(() {
+                                  widget.screenshot.removeReminder();
+                                });
+                              }
+                              ReminderUtils.clearReminder(
+                                context,
+                                widget.screenshot,
+                              );
+                            } else {
+                              if (mounted) {
+                                setState(() {
+                                  if (result['reminderTime'] != null) {
+                                    widget.screenshot.setReminder(
+                                      result['reminderTime'],
+                                      text: result['reminderText'],
+                                    );
+                                  } else {
+                                    widget.screenshot.removeReminder();
+                                  }
+                                });
+                              }
+
+                              if (result['reminderTime'] != null) {
+                                AnalyticsService().logFeatureUsed(
+                                  'reminder_set',
+                                );
+                                ReminderUtils.setReminder(
+                                  context,
+                                  widget.screenshot,
+                                  result['reminderTime'],
+                                  customMessage: result['reminderText'],
+                                );
+                              } else {
+                                AnalyticsService().logFeatureUsed(
+                                  'reminder_cleared',
+                                );
+                                ReminderUtils.clearReminder(
+                                  context,
+                                  widget.screenshot,
+                                );
+                              }
+                            }
+
+                            _updateScreenshotDetails();
+                          }
+                        },
+                      ),
+                      _buildToolbarButton(
+                        icon: Icons.text_fields_outlined,
+                        tooltip: 'Extract text with OCR',
+                        onPressed:
+                            _isProcessingOCR ? null : _processScreenshotWithOCR,
+                      ),
+                      _buildToolbarButton(
+                        icon: Icons.delete_outline,
+                        tooltip: 'Delete',
+                        onPressed: _confirmDeleteScreenshot,
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12), // Brought closer
+                // Add to collection button - separate rounded square
+                Container(
+                  height: 56,
+                  width: 56,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(
+                      24,
+                    ), // More rounded (almost circular)
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                      BoxShadow(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: _showAddToCollectionDialog,
+                      child: Icon(
+                        Icons.add_rounded,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Build individual toolbar button
+  Widget _buildToolbarButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onPressed,
+    bool isHighlighted = false,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        height: 44,
+        width: 44,
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          color:
+              isHighlighted
+                  ? Theme.of(context).colorScheme.primaryContainer
+                  : Colors.transparent,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: onPressed,
+            child: Icon(
+              icon,
+              size: 22,
+              color:
+                  isHighlighted
+                      ? Theme.of(context).colorScheme.onPrimaryContainer
+                      : (onPressed == null
+                          ? Theme.of(
+                            context,
+                          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.4)
+                          : Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   void dispose() {
     _descriptionController.dispose();
+    _animationController.dispose();
 
     // Ensure wakelock is disabled when the screen is disposed
     WakelockPlus.disable().catchError((e) {
@@ -719,11 +977,11 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
   String _formatFileSize(int bytes) {
     if (bytes <= 0) return "0 B";
     const suffixes = ["B", "KB", "MB", "GB", "TB"];
-    var i = (log(bytes) / log(1024)).floor();
+    var i = (math.log(bytes) / math.log(1024)).floor();
     if (i >= suffixes.length) {
       i = suffixes.length - 1;
     }
-    return '${(bytes / pow(1024, i)).toStringAsFixed(2)} ${suffixes[i]}';
+    return '${(bytes / math.pow(1024, i)).toStringAsFixed(2)} ${suffixes[i]}';
   }
 
   /// Detect the type of link and return appropriate icon and action
@@ -1335,126 +1593,8 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
           isLargeScreen
               ? _buildLargeScreenLayout(imageName)
               : _buildMobileLayout(imageName),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddToCollectionDialog,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: Icon(
-          Icons.add,
-          color: Theme.of(context).colorScheme.primaryContainer,
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8.0,
-        color: Theme.of(context).colorScheme.secondaryContainer.withAlpha(100),
-        child: Row(
-          children: <Widget>[
-            IconButton(
-              icon: Icon(
-                Icons.share,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-              onPressed: () async {
-                AnalyticsService().logFeatureUsed('screenshot_shared');
-                final file = File(widget.screenshot.path!);
-                if (await file.exists()) {
-                  await SharePlus.instance.share(
-                    ShareParams(
-                      text: 'Check out this screenshot!',
-                      files: [XFile(file.path)],
-                    ),
-                  );
-                } else {
-                  SnackbarService().showError(
-                    context,
-                    'Screenshot file not found',
-                  );
-                }
-              },
-            ),
-
-            IconButton(
-              icon: Icon(
-                Icons.alarm,
-                color:
-                    widget.screenshot.reminderTime != null
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.secondary,
-              ),
-              onPressed: () async {
-                AnalyticsService().logFeatureUsed('reminder_dialog_opened');
-                final result = await ReminderUtils.showReminderBottomSheet(
-                  context,
-                  widget.screenshot.reminderTime,
-                  widget.screenshot.reminderText,
-                );
-
-                if (result != null) {
-                  // If we received an 'expired' flag, it means the bottom sheet detected
-                  // an expired reminder and already closed itself
-                  if (result['expired'] == true) {
-                    if (mounted) {
-                      setState(() {
-                        widget.screenshot.removeReminder();
-                      });
-                    }
-                    ReminderUtils.clearReminder(context, widget.screenshot);
-                    // SnackbarService().showInfo(
-                    //   context,
-                    //   'Expired reminder has been cleared',
-                    // );
-                  } else {
-                    if (mounted) {
-                      setState(() {
-                        if (result['reminderTime'] != null) {
-                          widget.screenshot.setReminder(
-                            result['reminderTime'],
-                            text: result['reminderText'],
-                          );
-                        } else {
-                          widget.screenshot.removeReminder();
-                        }
-                      });
-                    }
-
-                    if (result['reminderTime'] != null) {
-                      AnalyticsService().logFeatureUsed('reminder_set');
-                      ReminderUtils.setReminder(
-                        context,
-                        widget.screenshot,
-                        result['reminderTime'],
-                        customMessage: result['reminderText'],
-                      );
-                    } else {
-                      AnalyticsService().logFeatureUsed('reminder_cleared');
-                      ReminderUtils.clearReminder(context, widget.screenshot);
-                    }
-                  }
-
-                  _updateScreenshotDetails();
-                }
-              },
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.text_fields,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-              tooltip: 'Extract text with OCR',
-              onPressed: _isProcessingOCR ? null : _processScreenshotWithOCR,
-            ),
-            IconButton(
-              icon: Icon(
-                Icons.delete_outline,
-                color: Theme.of(context).colorScheme.secondary,
-              ),
-              onPressed: _confirmDeleteScreenshot,
-            ),
-            const SizedBox(width: 16),
-          ],
-        ),
-      ),
+      floatingActionButton: _buildFloatingToolbar(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -1511,7 +1651,12 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
         Expanded(
           flex: 6,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: 100, // Extra padding for floating toolbar
+            ),
             child: _buildDetailsContent(imageName),
           ),
         ),
@@ -1564,7 +1709,11 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: 100, // Extra padding for floating toolbar
+            ),
             child: _buildDetailsContent(imageName),
           ),
         ],
