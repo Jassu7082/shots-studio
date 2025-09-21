@@ -313,7 +313,7 @@ class _AdvancedSettingsSectionState extends State<AdvancedSettingsSection> {
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           value: _analyticsEnabled,
-          activeColor: theme.colorScheme.primary,
+          activeThumbColor: theme.colorScheme.primary,
           onChanged: (bool value) {
             setState(() {
               _analyticsEnabled = value;
@@ -346,7 +346,7 @@ class _AdvancedSettingsSectionState extends State<AdvancedSettingsSection> {
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           value: _serverMessagesEnabled,
-          activeColor: theme.colorScheme.primary,
+          activeThumbColor: theme.colorScheme.primary,
           onChanged: (bool value) {
             setState(() {
               _serverMessagesEnabled = value;
@@ -379,7 +379,7 @@ class _AdvancedSettingsSectionState extends State<AdvancedSettingsSection> {
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           value: _betaTestingEnabled,
-          activeColor: theme.colorScheme.primary,
+          activeThumbColor: theme.colorScheme.primary,
           onChanged: (bool value) {
             setState(() {
               _betaTestingEnabled = value;

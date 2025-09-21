@@ -364,18 +364,18 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Decline'),
               style: ElevatedButton.styleFrom(
                 backgroundColor:
                     Theme.of(context).colorScheme.secondaryContainer,
               ),
+              child: const Text('Decline'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Accept & Download'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               ),
+              child: const Text('Accept & Download'),
             ),
           ],
         );
@@ -1063,7 +1063,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                   canToggle
                       ? (value) => _onProviderToggle(provider, value)
                       : null,
-              activeColor: theme.colorScheme.primary,
+              activeThumbColor: theme.colorScheme.primary,
             ),
           ],
         ),

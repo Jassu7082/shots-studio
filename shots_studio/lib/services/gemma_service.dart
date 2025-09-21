@@ -416,7 +416,7 @@ class GemmaService {
     final fileSize = await imageFile.length();
     if (fileSize > maxImageSize) {
       throw Exception(
-        'Image file too large (${fileSize} bytes). Maximum allowed: ${maxImageSize} bytes',
+        'Image file too large ($fileSize bytes). Maximum allowed: $maxImageSize bytes',
       );
     }
 

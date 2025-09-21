@@ -167,7 +167,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceVariant,
+                          color: theme.colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
@@ -194,7 +194,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
                                 ),
                               ),
                               value: _analyticsEnabled,
-                              activeColor: theme.colorScheme.primary,
+                              activeThumbColor: theme.colorScheme.primary,
                               onChanged: (bool value) {
                                 setState(() {
                                   _analyticsEnabled = value;

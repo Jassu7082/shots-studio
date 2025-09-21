@@ -662,7 +662,8 @@ class _CollectionDetailScreenState extends State<CollectionDetailScreen> {
                         ),
                         Switch(
                           value: _isAutoAddEnabled,
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeThumbColor:
+                              Theme.of(context).colorScheme.primary,
                           onChanged: (bool value) async {
                             setState(() {
                               _isAutoAddEnabled = value;
