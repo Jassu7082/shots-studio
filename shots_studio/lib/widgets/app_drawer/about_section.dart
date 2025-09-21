@@ -30,6 +30,107 @@ class AboutSection extends StatelessWidget {
     }
   }
 
+  Future<void> _openDonationPage(BuildContext context) async {
+    const List<String> donationUrls = [
+      'https://ansahmohammad.github.io/shots-studio/donation.html',
+      'https://shots-studio-854420.gitlab.io/donation.html',
+    ];
+
+    bool launched = false;
+    String? lastError;
+
+    for (int i = 0; i < donationUrls.length; i++) {
+      final url = donationUrls[i];
+
+      try {
+        final Uri uri = Uri.parse(url);
+        final success = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+
+        if (success) {
+          launched = true;
+          // Log which platform was successfully used
+          AnalyticsService().logFeatureUsed(
+            'donation_opened_${i == 0 ? 'github' : 'gitlab'}',
+          );
+          break;
+        }
+      } catch (e) {
+        lastError = e.toString();
+        // Log failed attempt but continue to next URL
+        AnalyticsService().logFeatureUsed(
+          'donation_failed_${i == 0 ? 'github' : 'gitlab'}',
+        );
+        continue;
+      }
+    }
+
+    if (!launched && context.mounted) {
+      // Show error if all sources fail
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to open donation page: ${lastError ?? "Unknown error"}',
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openSourceCode(BuildContext context) async {
+    const List<String> sourceCodeUrls = [
+      'https://github.com/AnsahMohammad/shots-studio',
+      'https://gitlab.com/mohdansah10/shots-studio',
+    ];
+
+    bool launched = false;
+    String? lastError;
+
+    for (int i = 0; i < sourceCodeUrls.length; i++) {
+      final url = sourceCodeUrls[i];
+      final platform = i == 0 ? 'GitHub' : 'GitLab';
+
+      try {
+        final Uri uri = Uri.parse(url);
+        final success = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+
+        if (success) {
+          launched = true;
+          // Log which platform was successfully used
+          AnalyticsService().logFeatureUsed(
+            'source_code_opened_${platform.toLowerCase()}',
+          );
+          break;
+        }
+      } catch (e) {
+        lastError = e.toString();
+        // Log failed attempt but continue to next URL
+        AnalyticsService().logFeatureUsed(
+          'source_code_failed_${platform.toLowerCase()}',
+        );
+        continue;
+      }
+    }
+
+    if (!launched && context.mounted) {
+      // Show error if all sources fail
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to open source code: ${lastError ?? "Unknown error"}',
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   Future<void> _openFeedbackForm(BuildContext context) async {
     // // Show loading indicator
     // ScaffoldMessenger.of(
@@ -186,17 +287,15 @@ class AboutSection extends StatelessWidget {
             style: TextStyle(color: theme.colorScheme.onSecondaryContainer),
           ),
           subtitle: Text(
-            'Contribute on GitHub',
+            'Contribute on GitHub or GitLab',
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           onTap: () {
             // Log analytics for source code access
             AnalyticsService().logFeatureUsed('source_code_accessed');
-            AnalyticsService().logFeatureUsed('github_link_clicked');
 
             Navigator.pop(context);
-            _launchURL('https://github.com/AnsahMohammad/shots-studio');
-            // _launchURL('https://gitlab.com/mohdansah10/shots-studio');
+            _openSourceCode(context);
           },
         ),
         ListTile(
@@ -216,10 +315,7 @@ class AboutSection extends StatelessWidget {
 
             Navigator.pop(context);
             _showSponsorshipDialog(context);
-            _launchURL(
-              'https://Ansahmohammad.github.io/shots-studio/donation.html',
-            );
-            // _launchURL('https://shots-studio-854420.gitlab.io/donation.html');
+            _openDonationPage(context);
           },
         ),
         ListTile(
