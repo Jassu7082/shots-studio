@@ -1,0 +1,21 @@
+{
+  "messages": [
+    {
+      "show": true,
+      "id": "welcome_1_9_12",
+      "title": "Here's what's new in Shots Studio 1.9.12! 🚀",
+      "message": "Say Hello to 'Expressive' Shots Studio! 🎉\n\nThis release brings a fresh design, new features, and important improvements:\n\n - M3 Expressive design rollout.\n - Updated privacy dialogue for better transparency.\n - Added donation and source code links with GitLab fallback.\n - Polish localisation support onboarded.\n - Changed app font to Inter for a cleaner look.\n\nCheck out the changelogs for the full details!\n\nWith Love ❤️,\nTeam Shots Studio",
+      "type": "info",
+      "priority": "high",
+      "show_once": true,
+      "valid_until": "2026-09-01T00:00:00Z",
+      "is_notification": false,
+      "version": "1.9.12",
+      "beta_only": false,
+      "action_text": "changelogs",
+      "dismiss_text": "dismiss",
+      "action_url": "https://github.com/AnsahMohammad/shots-studio/releases/tag/v1.9.12",
+      "platform": "all"
+    }
+  ]
+}
