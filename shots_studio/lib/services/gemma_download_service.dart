@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shots_studio/services/analytics/analytics_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 enum DownloadStatus { idle, downloading, paused, completed, error, cancelled }
 
@@ -72,24 +71,6 @@ class GemmaDownloadService extends ChangeNotifier {
   bool _notificationsInitialized = false;
   int _lastNotificationUpdate =
       0; // Track last notification update to avoid spam
-
-  /// Check if we have storage permissions
-  Future<bool> _checkStoragePermissions() async {
-    try {
-      if (Platform.isAndroid) {
-        // Check different permission types for compatibility across Android versions
-        final storageStatus = await Permission.storage.status;
-        final manageStorageStatus =
-            await Permission.manageExternalStorage.status;
-
-        // Return true if any storage permission is granted
-        return storageStatus.isGranted || manageStorageStatus.isGranted;
-      }
-      return true; // Non-Android platforms don't need these permissions
-    } catch (e) {
-      return false;
-    }
-  }
 
   /// Initialize notifications for download progress
   Future<void> _initializeNotifications() async {
@@ -199,21 +180,6 @@ class GemmaDownloadService extends ChangeNotifier {
   Future<bool> startDownload(String downloadLocation) async {
     if (isDownloading) {
       return false;
-    }
-
-    // Check storage permissions on Android before starting download
-    if (Platform.isAndroid) {
-      final hasPermission = await _checkStoragePermissions();
-      if (!hasPermission) {
-        _updateProgress(
-          _progress.copyWith(
-            status: DownloadStatus.error,
-            error:
-                'Storage permission denied. Please grant storage access in app settings.',
-          ),
-        );
-        return false;
-      }
     }
 
     // Initialize notifications

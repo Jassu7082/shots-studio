@@ -5,5 +5,6 @@ default analytics OFF
 Tap on version to Copy
 M3 expressive adoption for FAB
 Add polish language support
+Add backup and restore
 
 !!! Add to set the download path for local gemma model

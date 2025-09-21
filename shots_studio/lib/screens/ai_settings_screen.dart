@@ -9,7 +9,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shots_studio/l10n/app_localizations.dart';
 import 'package:shots_studio/services/gemma_download_service.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 class AISettingsScreen extends StatefulWidget {
@@ -187,17 +186,66 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     }
   }
 
+  Future<void> _confirmAndClearGemmaModel() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Clear Gemma Models'),
+          content: const Text(
+            'This will permanently delete all downloaded Gemma model files from your device and disable the Gemma provider. Are you sure you want to continue?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      await _clearGemmaModel();
+    }
+  }
+
   Future<void> _clearGemmaModel() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final currentModelPath = prefs.getString('gemma_model_path');
 
-      // Delete the model file if it exists in our app directory
+      // Delete the specific model file if it exists
       if (currentModelPath != null) {
         final modelFile = File(currentModelPath);
         if (await modelFile.exists()) {
           await modelFile.delete();
         }
+      }
+
+      // Also clean up the entire gemma_models directory to remove any downloaded models
+      try {
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final modelsDir = Directory('${appDocDir.path}/gemma_models');
+        if (await modelsDir.exists()) {
+          await modelsDir.delete(recursive: true);
+        }
+      } catch (e) {
+        // If cleaning up the directory fails, it's not critical
+        print('Warning: Could not clean up gemma_models directory: $e');
+      }
+
+      // Cancel any ongoing download
+      if (_downloadService.isDownloading || _downloadService.isPaused) {
+        _downloadService.cancelDownload();
       }
 
       await prefs.remove('gemma_model_path');
@@ -228,7 +276,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Gemma model cleared and provider disabled'),
+            content: Text('Gemma models cleared and provider disabled'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -384,139 +432,35 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
     return accepted ?? false;
   }
 
-  Future<void> _requestStoragePermissions() async {
+  Future<String> _getDownloadLocation() async {
     try {
-      if (Platform.isAndroid) {
-        // Request storage permissions with user-friendly dialog
-        bool permissionGranted = false;
+      // Always use app's documents directory for downloads
+      // This doesn't require any special permissions
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final modelsDir = Directory('${appDocDir.path}/gemma_models');
 
-        // Try different permissions based on Android version
-        var storageStatus = await Permission.storage.request();
-        if (storageStatus.isGranted) {
-          permissionGranted = true;
-        } else {
-          // Try manage external storage for newer Android versions
-          var manageStorageStatus =
-              await Permission.manageExternalStorage.request();
-          if (manageStorageStatus.isGranted) {
-            permissionGranted = true;
-          }
-        }
-
-        if (!permissionGranted && mounted) {
-          // Show dialog explaining why permissions are needed
-          await showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text('Storage Permission Required'),
-                content: const Text(
-                  'Storage permission is required to download and save the Gemma model file. '
-                  'Please grant storage access in your device settings to continue.',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      openAppSettings(); // Open app settings
-                    },
-                    child: const Text('Open Settings'),
-                  ),
-                ],
-              );
-            },
-          );
-        }
+      // Create models directory if it doesn't exist
+      if (!await modelsDir.exists()) {
+        await modelsDir.create(recursive: true);
       }
+
+      return modelsDir.path;
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error requesting storage permissions: $e'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<String?> _selectDownloadLocation() async {
-    try {
-      // Request storage permissions first on Android
-      if (Platform.isAndroid) {
-        await _requestStoragePermissions();
-      }
-
-      // Get default downloads directory
-      Directory? downloadsDir;
-      if (Platform.isAndroid) {
-        downloadsDir = Directory('/storage/emulated/0/Download');
-        if (!await downloadsDir.exists()) {
-          downloadsDir = await getExternalStorageDirectory();
-        }
-      } else {
-        downloadsDir = await getApplicationDocumentsDirectory();
-      }
-
-      String? selectedPath = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Select download location',
-        initialDirectory: downloadsDir?.path,
-      );
-
-      return selectedPath;
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error selecting download location: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return null;
+      // Fallback to app documents directory if creating subdirectory fails
+      final appDocDir = await getApplicationDocumentsDirectory();
+      return appDocDir.path;
     }
   }
 
   Future<void> _downloadGemmaModel() async {
-    // First request storage permissions on Android
-    if (Platform.isAndroid) {
-      await _requestStoragePermissions();
-
-      // Verify permissions were granted before proceeding
-      final storageStatus = await Permission.storage.status;
-      final manageStorageStatus = await Permission.manageExternalStorage.status;
-
-      if (!storageStatus.isGranted && !manageStorageStatus.isGranted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Storage permission is required to download the model. Please grant permission and try again.',
-              ),
-              backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
-            ),
-          );
-        }
-        return;
-      }
-    }
-
     // Show terms and conditions
     final termsAccepted = await _showTermsAndConditionsDialog();
     if (!termsAccepted) {
       return;
     }
 
-    // Select download location
-    final downloadLocation = await _selectDownloadLocation();
-    if (downloadLocation == null) {
-      return;
-    }
+    // Get download location (app documents directory - no permissions needed)
+    final downloadLocation = await _getDownloadLocation();
 
     // Start download using service
     final success = await _downloadService.startDownload(downloadLocation);
@@ -1097,7 +1041,7 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Select a local Gemma model file (.bin or .task) to use for on-device AI processing.',
+              'Download or select a local Gemma model file (.bin or .task) to use for on-device AI processing. Downloaded models are saved to the app\'s private storage.',
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.onSurfaceVariant,
@@ -1619,9 +1563,12 @@ class _AISettingsScreenState extends State<AISettingsScreen> {
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
-                    onPressed: _isLoadingGemmaModel ? null : _clearGemmaModel,
-                    icon: const Icon(Icons.clear),
-                    label: const Text('Clear'),
+                    onPressed:
+                        _isLoadingGemmaModel
+                            ? null
+                            : _confirmAndClearGemmaModel,
+                    icon: const Icon(Icons.delete_forever),
+                    label: const Text('Delete All'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: theme.colorScheme.error,
                     ),
