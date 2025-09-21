@@ -269,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _devMode = false;
   bool _autoProcessEnabled = true;
   bool _analyticsEnabled =
-      !kDebugMode; // Default to false in debug mode, true in production
+      false; // Default to false for privacy - analytics is opt-in only
   bool _amoledModeEnabled = false;
   bool _betaTestingEnabled = false;
   String _selectedTheme = 'Adaptive Theme';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shots_studio/services/snackbar_service.dart';
 import 'package:shots_studio/services/analytics/analytics_service.dart';
@@ -343,7 +344,13 @@ Future<void> showApiKeyGuideIfNeeded(
   Function(String) onApiKeyEntered,
 ) async {
   const String apiKeyGuideShownKey = 'apiKeyGuideShown';
-  const String privacyAcknowledgementKey = 'privacyAcknowledgementAccepted';
+
+  // Get app version to check version-specific privacy acknowledgment
+  final packageInfo = await PackageInfo.fromPlatform();
+  final appVersion = packageInfo.version;
+  final String privacyAcknowledgementKey =
+      'privacyAcknowledgementAccepted_v$appVersion';
+
   final prefs = await SharedPreferences.getInstance();
   bool? guideShown = prefs.getBool(apiKeyGuideShownKey);
   bool? privacyAccepted = prefs.getBool(privacyAcknowledgementKey);

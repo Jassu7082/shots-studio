@@ -6,5 +6,6 @@ Tap on version to Copy
 M3 expressive adoption for FAB
 Add polish language support
 Add backup and restore
+Gitlab switch for source code during outage.
 
 !!! Add to set the download path for local gemma model

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shots_studio/services/snackbar_service.dart';
 import 'package:shots_studio/utils/privacy_content_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,8 +25,7 @@ class PrivacyScreen extends StatefulWidget {
 }
 
 class _PrivacyScreenState extends State<PrivacyScreen> {
-  bool _analyticsEnabled =
-      !kDebugMode; // Default to false in debug mode, true in production
+  bool _analyticsEnabled = false; // Default to false for privacy - opt-in only
 
   @override
   void initState() {
@@ -64,7 +64,13 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
       // Track privacy agreement
       AnalyticsService().logFeatureUsed('privacy_screen_agreed');
 
-      const String privacyAcknowledgementKey = 'privacyAcknowledgementAccepted';
+      // Get app version to make privacy acknowledgment version-specific
+      final packageInfo = await PackageInfo.fromPlatform();
+      final appVersion = packageInfo.version;
+
+      // Version-specific privacy acknowledgment key
+      final String privacyAcknowledgementKey =
+          'privacyAcknowledgementAccepted_v$appVersion';
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(privacyAcknowledgementKey, true);
 
@@ -73,7 +79,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
       }
     }
 
-    Navigator.of(context).pop();
+    Navigator.of(context).pop(true); // Return true to indicate agreement
   }
 
   void _handleDisagree(BuildContext context) {
@@ -162,101 +168,109 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Additional information for non-acknowledgment screens
-                    if (!widget.isAcknowledgementRequired) ...[
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SwitchListTile(
-                              secondary: Icon(
-                                Icons.analytics_outlined,
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SwitchListTile(
+                            secondary: Icon(
+                              Icons.analytics_outlined,
+                              color: theme.colorScheme.primary,
+                            ),
+                            title: Text(
+                              'Analytics & Telemetry',
+                              style: TextStyle(
                                 color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
                               ),
-                              title: Text(
-                                'Analytics & Telemetry',
+                            ),
+                            subtitle: Text(
+                              _analyticsEnabled
+                                  ? 'Help improve the app by sharing usage data'
+                                  : 'Analytics and crash reporting disabled',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            value: _analyticsEnabled,
+                            activeThumbColor: theme.colorScheme.primary,
+                            onChanged: (bool value) {
+                              setState(() {
+                                _analyticsEnabled = value;
+                              });
+                              _saveAnalyticsEnabled(value);
+
+                              // Track analytics for analytics setting (meta-analytics!)
+                              AnalyticsService().logFeatureUsed(
+                                'settings_analytics_${value ? 'enabled' : 'disabled'}',
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16.0,
+                              right: 16.0,
+                            ),
+                            child: Text(
+                              "Anonymous usage analytics help us improve the app experience. This feature is completely optional and can be disabled at any time. For more details, you can inspect the source code of our analytics implementation here: ",
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16.0,
+                              right: 16.0,
+                              top: 4.0,
+                            ),
+                            child: GestureDetector(
+                              onTap: () async {
+                                const url =
+                                    'https://github.com/AnsahMohammad/shots-studio/blob/main/shots_studio/lib/services/analytics/posthog_analytics_service.dart';
+                                final Uri uri = Uri.parse(url);
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(
+                                    uri,
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                } else {
+                                  SnackbarService().showError(
+                                    context,
+                                    'Could not launch $url',
+                                  );
+                                }
+                              },
+                              child: Text(
+                                'Analytics Source Code',
                                 style: TextStyle(
                                   color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              subtitle: Text(
-                                _analyticsEnabled
-                                    ? 'Help improve the app by sharing usage data'
-                                    : 'Analytics and crash reporting disabled',
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              value: _analyticsEnabled,
-                              activeThumbColor: theme.colorScheme.primary,
-                              onChanged: (bool value) {
-                                setState(() {
-                                  _analyticsEnabled = value;
-                                });
-                                _saveAnalyticsEnabled(value);
-
-                                // Track analytics for analytics setting (meta-analytics!)
-                                AnalyticsService().logFeatureUsed(
-                                  'settings_analytics_${value ? 'enabled' : 'disabled'}',
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 16.0,
-                                right: 16.0,
-                              ),
-                              child: Text(
-                                "Anonymous usage analytics help us improve the app experience. This feature is completely optional and can be disabled at any time. For more details, you can inspect the source code of our analytics implementation here: ",
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                                  decoration: TextDecoration.underline,
                                   fontSize: 12,
                                 ),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 16.0,
-                                right: 16.0,
-                                top: 4.0,
-                              ),
-                              child: GestureDetector(
-                                onTap: () async {
-                                  const url =
-                                      'https://github.com/AnsahMohammad/shots-studio/blob/main/shots_studio/lib/services/analytics/posthog_analytics_service.dart';
-                                  final Uri uri = Uri.parse(url);
-                                  if (await canLaunchUrl(uri)) {
-                                    await launchUrl(
-                                      uri,
-                                      mode: LaunchMode.externalApplication,
-                                    );
-                                  } else {
-                                    SnackbarService().showError(
-                                      context,
-                                      'Could not launch $url',
-                                    );
-                                  }
-                                },
-                                child: Text(
-                                  'Analytics Source Code',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.primary,
-                                    decoration: TextDecoration.underline,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
+                    ),
+
+                    // Additional spacing and information
+                    if (!widget.isAcknowledgementRequired) ...[
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Legacy container for non-acknowledgment screens (keeping for any additional content)
+                    if (!widget.isAcknowledgementRequired) ...[
+                      // This section can be used for any additional settings that are specific
+                      // to the privacy screen accessed from app drawer (not first-time setup)
                     ],
 
                     const SizedBox(
@@ -351,12 +365,18 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
 
 // Helper function to show privacy screen when acknowledgment is needed
 Future<bool> showPrivacyScreenIfNeeded(BuildContext context) async {
-  const String privacyAcknowledgementKey = 'privacyAcknowledgementAccepted';
+  // Get app version to make privacy acknowledgment version-specific
+  final packageInfo = await PackageInfo.fromPlatform();
+  final appVersion = packageInfo.version;
+
+  // Version-specific privacy acknowledgment key
+  final String privacyAcknowledgementKey =
+      'privacyAcknowledgementAccepted_v$appVersion';
   final prefs = await SharedPreferences.getInstance();
   bool? acknowledged = prefs.getBool(privacyAcknowledgementKey);
 
   if (acknowledged == true) {
-    // Privacy already accepted, no need to show screen
+    // Privacy already accepted for this version, no need to show screen
     return true;
   }
 
