@@ -1,0 +1,473 @@
+{
+  "@@locale": "pl",
+  "appTitle": "Shots Studio",
+  "@appTitle": {
+    "description": "The application title"
+  },
+  "searchScreenshots": "Szukaj Zrzutów Ekranu",
+  "@searchScreenshots": {
+    "description": "Tooltip for search button"
+  },
+  "analyzed": "Przeanalizowano {count}/{total}",
+  "@analyzed": {
+    "description": "Shows progress of AI analysis",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      },
+      "total": {
+        "type": "int", 
+        "example": "10"
+      }
+    }
+  },
+  "developerModeDisabled": "Ustawienia zaawansowane wyłączone",
+  "@developerModeDisabled": {
+    "description": "Message shown when developer mode is disabled"
+  },
+  "collections": "Kolekcje",
+  "@collections": {
+    "description": "Collections section title"
+  },
+  "screenshots": "Zrzuty Ekranu",
+  "@screenshots": {
+    "description": "Screenshots section title"
+  },
+  "settings": "Ustawienia",
+  "@settings": {
+    "description": "Settings menu item"
+  },
+  "about": "O Aplikacji",
+  "@about": {
+    "description": "About menu item"
+  },
+  "privacy": "Prywatność",
+  "@privacy": {
+    "description": "Privacy menu item"
+  },
+  "createCollection": "Utwórz Kolekcję",
+  "@createCollection": {
+    "description": "Button text to create a new collection"
+  },
+  "editCollection": "Edytuj Kolekcję",
+  "@editCollection": {
+    "description": "Button text to edit collection"
+  },
+  "deleteCollection": "Usuń Kolekcję",
+  "@deleteCollection": {
+    "description": "Button text to delete collection"
+  },
+  "collectionName": "Nazwa Kolekcji",
+  "@collectionName": {
+    "description": "Label for collection name input field"
+  },
+  "save": "Zapisz",
+  "@save": {
+    "description": "Save button text"
+  },
+  "cancel": "Anuluj",
+  "@cancel": {
+    "description": "Cancel button text"
+  },
+  "delete": "Usuń",
+  "@delete": {
+    "description": "Delete button text"
+  },
+  "confirm": "Potwierdź",
+  "@confirm": {
+    "description": "Confirm button text"
+  },
+  "yes": "Tak",
+  "@yes": {
+    "description": "Yes button text"
+  },
+  "no": "Nie",
+  "@no": {
+    "description": "No button text"
+  },
+  "ok": "OK",
+  "@ok": {
+    "description": "OK button text"
+  },
+  "search": "Szukaj",
+  "@search": {
+    "description": "Search button text"
+  },
+  "noResults": "Nie znaleziono wyników",
+  "@noResults": {
+    "description": "Message when search returns no results"
+  },
+  "loading": "Ładowanie...",
+  "@loading": {
+    "description": "Loading message"
+  },
+  "error": "Błąd",
+  "@error": {
+    "description": "Error message"
+  },
+  "retry": "Ponów",
+  "@retry": {
+    "description": "Retry button text"
+  },
+  "share": "Udostępnij",
+  "@share": {
+    "description": "Share button text"
+  },
+  "copy": "Kopiuj",
+  "@copy": {
+    "description": "Copy button text"
+  },
+  "paste": "Wklej",
+  "@paste": {
+    "description": "Paste button text"
+  },
+  "selectAll": "Zaznacz Wszystko",
+  "@selectAll": {
+    "description": "Select all button text"
+  },
+  "aiSettings": "Ustawienia AI",
+  "@aiSettings": {
+    "description": "AI Settings menu item"
+  },
+  "apiKey": "Klucz API",
+  "@apiKey": {
+    "description": "API Key label"
+  },
+  "modelName": "Nazwa Modelu",
+  "@modelName": {
+    "description": "Model name label"
+  },
+  "autoProcessing": "Automatyczne Przetwarzanie",
+  "@autoProcessing": {
+    "description": "Auto processing setting"
+  },
+  "enabled": "Włączone",
+  "@enabled": {
+    "description": "Enabled status"
+  },
+  "disabled": "Wyłączone",
+  "@disabled": {
+    "description": "Disabled status"
+  },
+  "theme": "Motyw",
+  "@theme": {
+    "description": "Theme setting"
+  },
+  "lightTheme": "Jasny",
+  "@lightTheme": {
+    "description": "Light theme option"
+  },
+  "darkTheme": "Ciemny",
+  "@darkTheme": {
+    "description": "Dark theme option"
+  },
+  "systemTheme": "Systemowy",
+  "@systemTheme": {
+    "description": "System theme option"
+  },
+  "language": "Język",
+  "@language": {
+    "description": "Language setting"
+  },
+  "analytics": "Analityka",
+  "@analytics": {
+    "description": "Analytics setting"
+  },
+  "betaTesting": "Testy Beta",
+  "@betaTesting": {
+    "description": "Beta testing setting"
+  },
+  "advancedSettings": "Ustawienia Zaawansowane",
+  "developerMode": "Ustawienia Zaawansowane",
+  "safeDelete": "Bezpieczne Usuwanie",
+  "sourceCode": "Kod Źródłowy",
+  "support": "Wsparcie",
+  "checkForUpdates": "Sprawdź Aktualizacje",
+  "privacyNotice": "Informacja o Prywatności",
+  "analyticsAndTelemetry": "Analityka i Telemetria",
+  "performanceMenu": "Menu Wydajności",
+  "serverMessages": "Wiadomości Serwera",
+  "maxParallelAI": "Maksymalne Równoległe AI",
+  "enableScreenshotLimit": "Włącz Limit Zrzutów",
+  "tags": "Tagi",
+  "aiDetails": "Szczegóły AI",
+  "size": "Rozmiar",
+  "addDescription": "Dodaj opis",
+  "addTag": "Dodaj tag",
+  "@developerMode": {
+    "description": "Advanced settings mode setting"
+  },
+  "amoledMode": "Tryb AMOLED",
+  "@amoledMode": {
+    "description": "AMOLED mode setting"
+  },
+  "notifications": "Powiadomienia",
+  "@notifications": {
+    "description": "Notifications setting"
+  },
+  "permissions": "Uprawnienia",
+  "@permissions": {
+    "description": "Permissions setting"
+  },
+  "storage": "Pamięć",
+  "@storage": {
+    "description": "Storage setting"
+  },
+  "camera": "Kamera",
+  "@camera": {
+    "description": "Camera permission"
+  },
+  "version": "Wersja",
+  "@version": {
+    "description": "App version label"
+  },
+  "buildNumber": "Numer Kompilacji",
+  "@buildNumber": {
+    "description": "Build number label"
+  },
+  "ocrResults": "Wyniki OCR",
+  "@ocrResults": {
+    "description": "OCR results dialog title"
+  },
+  "extractedText": "Wyodrębniony Tekst",
+  "@extractedText": {
+    "description": "Label for extracted text from OCR"
+  },
+  "noTextFound": "Nie znaleziono tekstu w obrazie",
+  "@noTextFound": {
+    "description": "Message when OCR finds no text"
+  },
+  "processing": "Przetwarzanie...",
+  "@processing": {
+    "description": "Processing message"
+  },
+  "selectImage": "Wybierz Obraz",
+  "@selectImage": {
+    "description": "Select image button text"
+  },
+  "takePhoto": "Zrób Zdjęcie",
+  "@takePhoto": {
+    "description": "Take photo button text"
+  },
+  "fromGallery": "Z Galerii",
+  "@fromGallery": {
+    "description": "From gallery button text"
+  },
+  "imageSelected": "Obraz wybrany",
+  "@imageSelected": {
+    "description": "Message when image is selected"
+  },
+  "noImageSelected": "Nie wybrano obrazu",
+  "@noImageSelected": {
+    "description": "Message when no image is selected"
+  },
+  "apiKeyRequired": "Wymagany do funkcji AI",
+  "@apiKeyRequired": {
+    "description": "Message when API key is required"
+  },
+  "apiKeyValid": "Klucz API jest prawidłowy",
+  "@apiKeyValid": {
+    "description": "Message when API key is valid"
+  },
+  "apiKeyValidationFailed": "Weryfikacja klucza API nie powiodła się",
+  "@apiKeyValidationFailed": {
+    "description": "Message when API key validation fails"
+  },
+  "apiKeyNotValidated": "Klucz API jest ustawiony (nie zweryfikowany)",
+  "@apiKeyNotValidated": {
+    "description": "Message when API key is set but not validated"
+  },
+  "enterApiKey": "Wprowadź Klucz API Gemini",
+  "@enterApiKey": {
+    "description": "Placeholder text for API key field"
+  },
+  "validateApiKey": "Weryfikuj Klucz API",
+  "@validateApiKey": {
+    "description": "Button text to validate API key"
+  },
+  "valid": "Prawidłowy",
+  "@valid": {
+    "description": "Valid status text"
+  },
+  "autoProcessingDescription": "Zrzuty ekranu będą automatycznie przetwarzane po dodaniu",
+  "@autoProcessingDescription": {
+    "description": "Description for auto processing when enabled"
+  },
+  "manualProcessingOnly": "Tylko ręczne przetwarzanie",
+  "@manualProcessingOnly": {
+    "description": "Description for auto processing when disabled"
+  },
+  "amoledModeDescription": "Ciemny motyw zoptymalizowany dla ekranów AMOLED",
+  "@amoledModeDescription": {
+    "description": "Description for AMOLED mode when enabled"
+  },
+  "defaultDarkTheme": "Domyślny ciemny motyw",
+  "@defaultDarkTheme": {
+    "description": "Description for AMOLED mode when disabled"
+  },
+  "getApiKey": "Pobierz klucz API",
+  "@getApiKey": {
+    "description": "Tooltip for API key help button"
+  },
+  "stopProcessing": "Zatrzymaj Przetwarzanie",
+  "@stopProcessing": {
+    "description": "Tooltip for stop processing button"
+  },
+  "processWithAI": "Przetwarzaj z AI", 
+  "@processWithAI": {
+    "description": "Tooltip for process with AI button"
+  },
+  "createFirstCollection": "Utwórz swoją pierwszą kolekcję, aby",
+  "@createFirstCollection": {
+    "description": "First part of empty collections message"
+  },
+  "organizeScreenshots": "uporządkować swoje zrzuty ekranu",
+  "@organizeScreenshots": {
+    "description": "Second part of empty collections message"
+  },
+  "cancelSelection": "Anuluj zaznaczenie",
+  "@cancelSelection": {
+    "description": "Tooltip for cancel selection button"
+  },
+  "deselectAll": "Odznacz Wszystko",
+  "@deselectAll": {
+    "description": "Deselect all button text"
+  },
+  "deleteSelected": "Usuń zaznaczone",
+  "@deleteSelected": {
+    "description": "Tooltip for delete selected button"
+  },
+  "clearCorruptFiles": "Wyczyść Uszkodzone Pliki",
+  "@clearCorruptFiles": {
+    "description": "Button to clear all corrupt files"
+  },
+  "clearCorruptFilesConfirm": "Wyczyścić Uszkodzone Pliki?",
+  "@clearCorruptFilesConfirm": {
+    "description": "Title for confirm dialog to clear corrupt files"
+  },
+  "clearCorruptFilesMessage": "Czy na pewno chcesz usunąć wszystkie uszkodzone pliki z tej kolekcji? Ta akcja nie może zostać cofnięta.",
+  "@clearCorruptFilesMessage": {
+    "description": "Message for confirm dialog to clear corrupt files"
+  },
+  "corruptFilesCleared": "Uszkodzone pliki zostały wyczyszczone",
+  "@corruptFilesCleared": {
+    "description": "Message shown when corrupt files are cleared"
+  },
+  "noCorruptFiles": "Nie znaleziono uszkodzonych plików",
+  "@noCorruptFiles": {
+    "description": "Message shown when no corrupt files are found"
+  },
+  "enableLocalAI": "🤖 Włącz Lokalny Model AI",
+  "@enableLocalAI": {
+    "description": "Title for enable local AI dialog"
+  },
+  "localAIBenefits": "Co to oznacza:",
+  "@localAIBenefits": {
+    "description": "Header for What this means: section"
+  },
+  "localAIOffline": "• Działa całkowicie offline - nie wymaga internetu",
+  "@localAIOffline": {
+    "description": "Local AI benefit: offline functionality"
+  },
+  "localAIPrivacy": "• Twoje dane pozostają prywatne na urządzeniu",
+  "@localAIPrivacy": {
+    "description": "Local AI benefit: privacy"
+  },
+  "localAINote": "Uwaga:",
+  "@localAINote": {
+    "description": "Header for local AI notes section"
+  },
+  "localAIBattery": "• Zużywa więcej baterii niż modele chmurowe",
+  "@localAIBattery": {
+    "description": "Local AI note: battery usage"
+  },
+  "localAIRAM": "• Wymaga co najmniej 4GB dostępnej pamięci RAM",
+  "@localAIRAM": {
+    "description": "Local AI note: RAM requirement"
+  },
+  "localAIPrivacyNote": "Model będzie przetwarzał twoje zrzuty ekranu lokalnie dla zwiększonej prywatności.",
+  "@localAIPrivacyNote": {
+    "description": "Local AI privacy explanation"
+  },
+  "enableLocalAIButton": "Włącz Lokalne AI",
+  "@enableLocalAIButton": {
+    "description": "Button text to enable local AI"
+  },
+  "reminders": "Przypomnienia",
+  "@reminders": {
+    "description": "Reminders screen title"
+  },
+  "activeReminders": "Aktywne",
+  "@activeReminders": {
+    "description": "Active reminders tab title"
+  },
+  "pastReminders": "Przeszłe",
+  "@pastReminders": {
+    "description": "Past reminders tab title"
+  },
+  "noActiveReminders": "Brak aktywnych przypomnień.\nUstaw przypomnienia ze szczegółów zrzutu ekranu.",
+  "@noActiveReminders": {
+    "description": "Message shown when there are no active reminders"
+  },
+  "noPastReminders": "Brak przeszłych przypomnień.",
+  "@noPastReminders": {
+    "description": "Message shown when there are no past reminders"
+  },
+  "editReminder": "Edytuj Przypomnienie",
+  "@editReminder": {
+    "description": "Tooltip for edit reminder button"
+  },
+  "clearReminder": "Wyczyść Przypomnienie",
+  "@clearReminder": {
+    "description": "Tooltip for clear reminder button"
+  },
+  "removePastReminder": "Usuń",
+  "@removePastReminder": {
+    "description": "Tooltip for remove past reminder button"
+  },
+  "pastReminderRemoved": "Przeszłe przypomnienie zostało usunięte",
+  "@pastReminderRemoved": {
+    "description": "Message shown when a past reminder is removed"
+  },
+  "supportTheProject": "Wspieraj projekt",
+  "@supportTheProject": {
+    "description": "Title for sponsorship dialog and support button"
+  },
+  "supportShotsStudio": "Wspieraj Shots Studio",
+  "@supportShotsStudio": {
+    "description": "Main title in sponsorship dialog"
+  },
+  "supportDescription": "Twoje wsparcie pomaga utrzymać ten projekt przy życiu i umożliwia nam dodawanie niesamowitych nowych funkcji",
+  "@supportDescription": {
+    "description": "Description text in sponsorship dialog"
+  },
+  "availableNow": "Dostępne teraz",
+  "@availableNow": {
+    "description": "Section title for available sponsorship options"
+  },
+  "comingSoon": "Wkrótce",
+  "@comingSoon": {
+    "description": "Section title for upcoming sponsorship options"
+  },
+  "everyContributionMatters": "Każdy wkład ma znaczenie",
+  "@everyContributionMatters": {
+    "description": "Footer title in sponsorship dialog"
+  },
+  "supportFooterDescription": "Dziękujemy za rozważenie wsparcia tego projektu. Twój wkład pomaga nam utrzymywać i ulepszać Shots Studio. W przypadku specjalnych ustaleń lub międzynarodowych przelewów bankowych, skontaktuj się z nami przez GitHub.",
+  "@supportFooterDescription": {
+    "description": "Footer description in sponsorship dialog"
+  },
+  "contactOnGitHub": "Kontakt na GitHub",
+  "@contactOnGitHub": {
+    "description": "Button text to contact developer on GitHub"
+  },
+  "noSponsorshipOptions": "Obecnie nie ma dostępnych opcji sponsoringu.",
+  "@noSponsorshipOptions": {
+    "description": "Message when no sponsorship options are available"
+  },
+  "close": "Zamknij",
+  "@close": {
+    "description": "Close button text"
+  }
+}

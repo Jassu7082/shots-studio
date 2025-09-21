@@ -543,6 +543,15 @@ class _SettingsSectionState extends State<SettingsSection> {
                             ],
                           ),
                         ),
+                        DropdownMenuItem(
+                          value: 'pl',
+                          child: Row(
+                            children: [
+                              SizedBox(width: 8),
+                              Text('Polski (Polish)'),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ],
