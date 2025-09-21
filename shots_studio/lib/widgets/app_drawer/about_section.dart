@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../services/sponsorship_service.dart';
 import '../../services/analytics/analytics_service.dart';
 import '../../services/update_checker_service.dart';
@@ -25,6 +28,70 @@ class AboutSection extends StatelessWidget {
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $urlString');
     }
+  }
+
+  Future<void> _openFeedbackForm(BuildContext context) async {
+    // // Show loading indicator
+    // ScaffoldMessenger.of(
+    //   context,
+    // ).showSnackBar(const SnackBar(content: Text('Opening feedback form...')));
+
+    try {
+      // Fetch feedback URL from remote sources
+      final feedbackUrl = await _getFeedbackUrl();
+
+      if (feedbackUrl != null) {
+        // Log analytics for feedback access
+        AnalyticsService().logFeatureUsed('feedback_form_opened');
+
+        await _launchURL(feedbackUrl);
+      } else {
+        if (context.mounted) {
+          print('Failed to load feedback form');
+        }
+      }
+    } catch (e) {
+      // Show error if feedback form can't be loaded
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to open feedback form: $e')),
+        );
+      }
+    }
+  }
+
+  /// Fetches feedback URL from remote sources with fallback
+  Future<String?> _getFeedbackUrl() async {
+    const List<String> feedbackUrls = [
+      'https://ansahmohammad.github.io/shots-studio/feedback.json',
+      'https://gitlab.com/mohdansah10/shots-studio/-/raw/main/docs/feedback.json',
+    ];
+
+    for (final url in feedbackUrls) {
+      try {
+        final response = await http
+            .get(
+              Uri.parse(url),
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'shots_studio_app',
+                'Content-Type': 'application/json',
+              },
+            )
+            .timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data is Map<String, dynamic> && data.containsKey('form_link')) {
+            return data['form_link'] as String;
+          }
+        }
+      } catch (e) {
+        // Continue to next URL if current one fails
+        continue;
+      }
+    }
+    return null; // Return null if all sources fail
   }
 
   Future<void> _checkForUpdatesManually(BuildContext context) async {
@@ -79,6 +146,32 @@ class AboutSection extends StatelessWidget {
     );
   }
 
+  Future<void> _copyVersionToClipboard(BuildContext context) async {
+    try {
+      final versionText =
+          'Version $appVersion (${BuildSource.current.displayName})';
+      await Clipboard.setData(ClipboardData(text: versionText));
+      if (context.mounted) {
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(
+        //     content: Text('Copied to clipboard: $versionText'),
+        //     duration: const Duration(seconds: 2),
+        //   ),
+        // );
+        print('Copied to clipboard: $versionText');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to copy version to clipboard'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -129,6 +222,21 @@ class AboutSection extends StatelessWidget {
             // _launchURL('https://shots-studio-854420.gitlab.io/donation.html');
           },
         ),
+        ListTile(
+          leading: Icon(Icons.feedback, color: theme.colorScheme.primary),
+          title: Text(
+            'Feedback',
+            style: TextStyle(color: theme.colorScheme.onSecondaryContainer),
+          ),
+          subtitle: Text(
+            'Share your suggestions',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            _openFeedbackForm(context);
+          },
+        ),
         Divider(color: theme.colorScheme.outline),
         ListTile(
           leading: Icon(Icons.info_outline, color: theme.colorScheme.primary),
@@ -143,6 +251,9 @@ class AboutSection extends StatelessWidget {
           onTap: () {
             // Log analytics for about section interactions
             AnalyticsService().logFeatureUsed('about_section_clicked');
+
+            // Copy version to clipboard
+            _copyVersionToClipboard(context);
 
             if (onTap != null) {
               onTap!();
