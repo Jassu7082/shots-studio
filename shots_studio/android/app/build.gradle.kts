@@ -90,7 +90,7 @@ android {
     buildTypes {
         release {
             // Uses debug signing by default (uncomment below for playstore release signing)
-            // signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -116,6 +116,15 @@ android {
             val buildTypeName = buildType.name
             outputImpl.outputFileName = "shots_studio-${flavorName}-${buildTypeName}-${versionName}.apk"
         }
+    }
+}
+
+// Fix for F-Droid reproducible builds: disable baseline profiles for F-Droid builds
+// This addresses the non-deterministic baseline.prof file issue
+// See: https://issuetracker.google.com/issues/231837768
+tasks.whenTaskAdded {
+    if (name.contains("ArtProfile") && name.contains("Fdroid")) {
+        enabled = false
     }
 }
 
