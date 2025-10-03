@@ -2,6 +2,23 @@
   "messages": [
     {
       "show": true,
+      "id": "release_issue",
+      "title": "F-Droid Release Pipeline Issue - Version 1.9.12 Delayed",
+      "message": "Hey users! 📢\n\nWe're experiencing issues with our F-Droid release pipeline, which is causing a delay in the rollout of version 1.9.12+. We apologize for any inconvenience this may cause.\n\nThe good news is that we're working hard to fix this issue, and the next version will hopefully be released with the pipeline fully restored.\n\nThank you for your patience and continued support! 🙏\n\n With Love <3, \n Team Shots Studio",
+      "type": "info",
+      "priority": "high",
+      "show_once": true,
+      "valid_until": "2025-11-01T00:00:00Z",
+      "is_notification": false,
+      "version": "1.8.170",
+      "beta_only": false,
+      "action_text": "Peek v1.9.12",
+      "dismiss_text": "Dismiss",
+      "action_url": "https://github.com/AnsahMohammad/shots-studio/releases/tag/v1.9.12",
+      "platform": "fdroid"
+    },
+    {
+      "show": true,
       "id": "welcome_1_8_170",
       "title": "Here's what's new in Shots Studio 1.8.170!",
       "message": "Say Hello to the latest version of Shots Studio! 🎉\n\n  This version is focused on improving usability and performance. \n\n -Automatic removal of corrupted/deleted files. \n -Added support for Gemini-2.5-flash and Gemini-2.5-flash-lite (default). \n -Revamped Settings UI. Settings now has a dedicated page \n -Addressed the 60fps frame lock to support maximum refresh rates.\n And lots of other performance and bug fixes.  \n\nCheck out the changelogs for more details! \n Thanks for your feedback!! \n\n With Love <3, \n Team Shots Studio",
@@ -14,7 +31,7 @@
       "beta_only": false,
       "action_text": "changelogs",
       "dismiss_text": "dismiss",
-      "action_url": "https://github.com/AnsahMohammad/shots-studio/releases/download/v1.8.170",
+      "action_url": "https://github.com/AnsahMohammad/shots-studio/releases/tag/v1.8.170",
       "platform": "all"
     }
   ]
