@@ -25,6 +25,7 @@ import 'package:shots_studio/widgets/ocr_result_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shots_studio/services/xmp_metadata_service.dart';
 
 class ScreenshotDetailScreen extends StatefulWidget {
   final Screenshot screenshot;
@@ -40,6 +41,8 @@ class ScreenshotDetailScreen extends StatefulWidget {
   final VoidCallback? onNavigateAfterDelete;
   final Function(int)?
   onNavigateToIndex; // Callback for navigating to a specific index
+  final bool
+  disableAnimations; // Flag to disable animations for better PageView performance
 
   const ScreenshotDetailScreen({
     super.key,
@@ -54,6 +57,7 @@ class ScreenshotDetailScreen extends StatefulWidget {
     this.totalCount,
     this.onNavigateAfterDelete,
     this.onNavigateToIndex,
+    this.disableAnimations = false,
   });
 
   @override
@@ -83,21 +87,35 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
     ); // Track screenshot details screen access
     AnalyticsService().logScreenView('screenshot_details_screen');
 
-    // Initialize simple bounce animation
+    // Initialize animation controller - always enable for floating toolbar bounce
+    // The disableAnimations flag only affects the main screen bounce, not the toolbar
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    _scaleAnimation = Tween<double>(
+      begin: 0.8, // Always start with bounce effect for floating toolbar
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve:
+            Curves.elasticOut, // Always use bounce curve for floating toolbar
+      ),
     );
 
     // Check for expired reminders after the frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkExpiredReminders();
-      // Start simple bounce animation
-      _animationController.forward();
+      // Always run the floating toolbar bounce animation
+      // The disableAnimations flag was meant to disable screen-level animations,
+      // not the floating toolbar which should always have a nice entrance
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _animationController.forward();
+        }
+      });
     });
 
     // Load hard delete setting
@@ -257,7 +275,7 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
                                 AnalyticsService().logFeatureUsed(
                                   'reminder_set',
                                 );
-                                ReminderUtils.setReminder(
+                                await ReminderUtils.setReminder(
                                   context,
                                   widget.screenshot,
                                   result['reminderTime'],
@@ -1310,7 +1328,7 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
         Text(
           imageName,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSecondaryContainer,
           ),
@@ -1333,6 +1351,37 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
               fontSize: 14,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
+          ),
+        ],
+        // Show XMP metadata indicator if AI processed and XMP writing is enabled
+        if (widget.screenshot.aiProcessed) ...[
+          const SizedBox(height: 4),
+          FutureBuilder<bool>(
+            future: XMPMetadataService.isXMPWritingEnabled(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data == true) {
+                return Row(
+                  children: [
+                    Icon(
+                      Icons.tag_outlined,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      AppLocalizations.of(context)?.xmpMetadataWritten ??
+                          'XMP metadata saved',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ],
 
@@ -1390,7 +1439,7 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
         Text(
           AppLocalizations.of(context)?.aiDetails ?? 'AI Details',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSecondaryContainer,
           ),
@@ -1465,7 +1514,7 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
         Text(
           AppLocalizations.of(context)?.tags ?? 'Tags',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.onSecondaryContainer,
           ),
@@ -1554,7 +1603,7 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
       appBar: AppBar(
         title: Text(
           'Screenshot Detail',
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
         ),
         elevation: 0,
         actions: [
@@ -1751,16 +1800,13 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
       // Show processing message
       SnackbarService().showInfo(context, 'Processing image with OCR...');
 
-      // Extract text and copy to clipboard
-      final extractedText = await _ocrService.extractTextAndCopyToClipboard(
+      // Extract text
+      final extractedText = await _ocrService.extractTextFromScreenshot(
         widget.screenshot,
       );
 
       if (extractedText != null && extractedText.isNotEmpty) {
-        SnackbarService().showSuccess(
-          context,
-          'Text extracted and copied to clipboard!',
-        );
+        SnackbarService().showSuccess(context, 'Text extracted successfully!');
         AnalyticsService().logFeatureUsed('ocr_text_extracted');
 
         // Show the extracted text in a dialog

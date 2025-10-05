@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shots_studio/services/analytics/analytics_service.dart';
 import 'package:shots_studio/services/corrupt_file_service.dart';
+import 'package:shots_studio/services/xmp_metadata_service.dart';
 import 'package:shots_studio/models/screenshot_model.dart';
 // import 'package:shots_studio/screens/debug_notifications_screen.dart'; // Uncomment for debugging
 import '../../l10n/app_localizations.dart';
@@ -53,10 +54,12 @@ class _AdvancedSettingsSectionState extends State<AdvancedSettingsSection> {
       !kDebugMode; // Default to false in debug mode, true in production
   bool _serverMessagesEnabled = true;
   bool _betaTestingEnabled = false;
+  bool _xmpWritingEnabled = false;
 
   static const String _maxParallelPrefKey = 'maxParallel';
   static const String _serverMessagesPrefKey = 'server_messages_enabled';
   static const String _betaTestingPrefKey = 'beta_testing_enabled';
+  static const String _xmpWritingPrefKey = 'xmp_writing_enabled';
 
   @override
   void initState() {
@@ -82,6 +85,9 @@ class _AdvancedSettingsSectionState extends State<AdvancedSettingsSection> {
     } else {
       _loadBetaTestingEnabledPref();
     }
+
+    // Initialize XMP writing state
+    _loadXMPWritingEnabledPref();
   }
 
   void _loadAnalyticsEnabledPref() async {
@@ -102,6 +108,13 @@ class _AdvancedSettingsSectionState extends State<AdvancedSettingsSection> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _betaTestingEnabled = prefs.getBool(_betaTestingPrefKey) ?? false;
+    });
+  }
+
+  Future<void> _loadXMPWritingEnabledPref() async {
+    final enabled = await XMPMetadataService.isXMPWritingEnabled();
+    setState(() {
+      _xmpWritingEnabled = enabled;
     });
   }
 
@@ -146,6 +159,10 @@ class _AdvancedSettingsSectionState extends State<AdvancedSettingsSection> {
   Future<void> _saveBetaTestingEnabled(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_betaTestingPrefKey, value);
+  }
+
+  Future<void> _saveXMPWritingEnabled(bool value) async {
+    await XMPMetadataService.setXMPWritingEnabled(value);
   }
 
   /// Clear all corrupt files from the app using the CorruptFileService
@@ -394,6 +411,124 @@ class _AdvancedSettingsSectionState extends State<AdvancedSettingsSection> {
             if (widget.onBetaTestingEnabledChanged != null) {
               widget.onBetaTestingEnabledChanged!(value);
             }
+          },
+        ),
+        SwitchListTile(
+          secondary: Icon(Icons.tag_outlined, color: theme.colorScheme.primary),
+          title: Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        AppLocalizations.of(context)?.writeTagsToXMP ??
+                            'Write Tags to XMP',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSecondaryContainer,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.help_outline,
+                  size: 16,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder:
+                        (context) => AlertDialog(
+                          title: Row(
+                            children: [
+                              Text(
+                                'XMP Metadata',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.secondary,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'BETA',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSecondary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              '🔧 BETA FEATURE - Be carefully before enabling!\n\n'
+                              'When enabled, AI-generated title will be embedded directly into your image files as searchable metadata.\n\n'
+                              '✅ BENEFITS:\n'
+                              '• Tags become searchable outside shots-studio\n'
+                              '• Works with file managers and photo organizers\n'
+                              '• Metadata travels with the image file\n'
+                              '⚠️ IMPORTANT CHANGES:\n'
+                              '• PNG screenshots → converted to JPEG (95% quality)\n'
+                              '• WebP images → converted to JPEG for compatibility\n'
+                              '• Original image files are permanently modified\n'
+                              '• Existing EXIF data may be replaced\n\n',
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: Text(
+                                'Got it',
+                                style: TextStyle(
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                  );
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          subtitle: Text(
+            _xmpWritingEnabled
+                ? 'Metadata embedded in image files (PNG→JPEG conversion)'
+                : 'Embed tags in image files for external searchability',
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          value: _xmpWritingEnabled,
+          activeThumbColor: theme.colorScheme.primary,
+          onChanged: (bool value) {
+            setState(() {
+              _xmpWritingEnabled = value;
+            });
+            _saveXMPWritingEnabled(value);
+
+            // Track analytics for XMP writing setting
+            AnalyticsService().logFeatureUsed(
+              'settings_xmp_writing_${value ? 'enabled' : 'disabled'}',
+            );
           },
         ),
         // Reset AI Processing Button

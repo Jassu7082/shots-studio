@@ -15,6 +15,7 @@ import 'app_localizations_it.dart';
 import 'app_localizations_ja.dart';
 import 'app_localizations_pl.dart';
 import 'app_localizations_pt.dart';
+import 'app_localizations_ro.dart';
 import 'app_localizations_ru.dart';
 import 'app_localizations_zh.dart';
 
@@ -114,6 +115,7 @@ abstract class AppLocalizations {
     Locale('ja'),
     Locale('pl'),
     Locale('pt'),
+    Locale('ro'),
     Locale('ru'),
     Locale('zh'),
   ];
@@ -369,6 +371,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Beta Testing'**
   String get betaTesting;
+
+  /// XMP metadata writing setting
+  ///
+  /// In en, this message translates to:
+  /// **'Write Tags to XMP'**
+  String get writeTagsToXMP;
+
+  /// Indicator showing XMP metadata has been written to the image file
+  ///
+  /// In en, this message translates to:
+  /// **'XMP metadata written to the file'**
+  String get xmpMetadataWritten;
 
   /// No description provided for @advancedSettings.
   ///
@@ -902,6 +916,7 @@ class _AppLocalizationsDelegate
     'ja',
     'pl',
     'pt',
+    'ro',
     'ru',
     'zh',
   ].contains(locale.languageCode);
@@ -933,6 +948,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsPl();
     case 'pt':
       return AppLocalizationsPt();
+    case 'ro':
+      return AppLocalizationsRo();
     case 'ru':
       return AppLocalizationsRu();
     case 'zh':
