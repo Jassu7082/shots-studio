@@ -720,6 +720,13 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
           .analyzeScreenshots(
             screenshots: [widget.screenshot],
             onBatchProcessed: (batch, response) {
+              // Handle prefilter blocked screenshots
+              if (response.containsKey('prefilter_blocked') && response['prefilter_blocked'] == true) {
+                // Screenshots were blocked by prefilter - update parent widget to refresh UI
+                widget.onScreenshotUpdated?.call();
+                return;
+              }
+
               // Update the screenshot with processed data
               final updatedScreenshots = _aiServiceManager
                   .parseAndUpdateScreenshots(batch, response);
