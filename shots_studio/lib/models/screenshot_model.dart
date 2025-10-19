@@ -19,6 +19,8 @@ class Screenshot {
   bool isDeleted;
   DateTime? reminderTime;
   String? reminderText;
+  String? prefilterLevel; // "light" or "deep" - set globally once
+  Map<String, dynamic>? prefilterResult; // Store the actual prefilter analysis result
 
   Screenshot({
     required this.id,
@@ -36,6 +38,8 @@ class Screenshot {
     this.isDeleted = false,
     this.reminderTime,
     this.reminderText,
+    this.prefilterLevel,
+    this.prefilterResult,
   }) : links = links ?? [],
        collectionIds = collectionIds ?? [];
 
@@ -79,6 +83,8 @@ class Screenshot {
       'isDeleted': isDeleted,
       'reminderTime': reminderTime?.toIso8601String(),
       'reminderText': reminderText,
+      'prefilterLevel': prefilterLevel,
+      'prefilterResult': prefilterResult,
     };
   }
 
@@ -113,6 +119,11 @@ class Screenshot {
               ? DateTime.parse(json['reminderTime'] as String)
               : null,
       reminderText: json['reminderText'] as String?,
+      prefilterLevel: json['prefilterLevel'] as String?,
+      prefilterResult:
+          json['prefilterResult'] != null
+              ? Map<String, dynamic>.from(json['prefilterResult'] as Map)
+              : null,
     );
   }
 
@@ -181,6 +192,8 @@ class Screenshot {
     bool? isDeleted,
     DateTime? reminderTime,
     String? reminderText,
+    String? prefilterLevel,
+    Map<String, dynamic>? prefilterResult,
   }) {
     return Screenshot(
       id: id,
@@ -198,6 +211,8 @@ class Screenshot {
       isDeleted: isDeleted ?? this.isDeleted,
       reminderTime: reminderTime ?? this.reminderTime,
       reminderText: reminderText ?? this.reminderText,
+      prefilterLevel: prefilterLevel ?? this.prefilterLevel,
+      prefilterResult: prefilterResult ?? this.prefilterResult,
     );
   }
 

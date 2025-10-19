@@ -71,6 +71,8 @@ void main() async {
         // Set up notification channel for background service
         await _setupBackgroundServiceNotificationChannel();
         // Don't initialize service at app startup - we'll do it when needed
+      } else {
+        print("Main: Skipping background service setup on web platform");
       }
 
       runApp(SentryWidget(child: const MyApp()));

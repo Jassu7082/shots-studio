@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,6 +31,12 @@ class XMPMetadataService {
     bool overwriteExisting = false,
   }) async {
     try {
+      // Skip on web platforms - browser security prevents file modification
+      if (kIsWeb) {
+        print('XMP: Skipping on web platform - file modification not supported');
+        return false;
+      }
+
       // Check if XMP writing is enabled
       if (!await isXMPWritingEnabled()) {
         print('XMP writing is disabled in settings');

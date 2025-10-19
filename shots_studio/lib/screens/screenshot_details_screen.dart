@@ -22,6 +22,11 @@ import 'package:shots_studio/services/ai_service_manager.dart';
 import 'package:shots_studio/services/ai_service.dart';
 import 'package:shots_studio/services/ocr_service.dart';
 import 'package:shots_studio/widgets/ocr_result_dialog.dart';
+import 'package:shots_studio/widgets/api_key_input_dialog.dart';
+import 'package:shots_studio/widgets/prefilter_level_dialog.dart';
+import 'package:shots_studio/widgets/prefilter_blocked_dialog.dart';
+import 'package:shots_studio/services/ml_prefilter_interface.dart';
+import 'package:shots_studio/services/prefilter_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -597,6 +602,20 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
 
     // Check if already processed and confirmed by user
     if (widget.screenshot.aiProcessed) {
+      // Special case: if this was blocked by prefilter, skip the dialog and don't allow reprocessing
+      if (widget.screenshot.aiMetadata?.modelName == 'Prefilter') {
+        SnackbarService().showWarning(
+          context,
+          'This screenshot was blocked by privacy filter and cannot be processed.',
+        );
+        try {
+          await WakelockPlus.disable();
+        } catch (e) {
+          print('Failed to disable wakelock: $e');
+        }
+        return;
+      }
+
       final bool? shouldReprocess = await showDialog<bool>(
         context: context,
         builder: (BuildContext context) {
@@ -658,16 +677,46 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
     if (prefs.getString('modelName') == 'gemma') {
       apiKey = 'gemma-v1'; // explicitly set APIKey to gemma-v1
     } else if (apiKey == null || apiKey.isEmpty) {
-      try {
-        await WakelockPlus.disable();
-      } catch (e) {
-        print('Failed to disable wakelock: $e');
-      }
-      SnackbarService().showError(
+      // No API key - show setup dialog
+      final apiKeySaved = await ApiKeyInputDialog.show(
         context,
-        'AI API key not configured. Please check app settings.',
+        onApiKeySaved: (savedApiKey) async {
+          setState(() {
+            apiKey = savedApiKey;
+          });
+          await prefs.setString('apiKey', savedApiKey);
+        },
       );
-      return;
+
+      if (apiKeySaved != true) {
+        // User cancelled API key setup
+        try {
+          await WakelockPlus.disable();
+        } catch (e) {
+          print('Failed to disable wakelock: $e');
+        }
+        return;
+      }
+    }
+
+    // Check if prefilter level has been set globally (only ask once)
+    final hasShownPrefilterDialog = prefs.getBool('prefilter_dialog_shown') ?? false;
+
+    if (!hasShownPrefilterDialog) {
+      // This is the first time, show the prefilter level dialog
+      final prefilterConfigured = await PrefilterLevelDialog.show(
+        context,
+        onPrefilterModeSelected: (mode) async {
+          // Save the global prefilter level
+          await prefs.setString('prefilter_level', mode);
+          await prefs.setBool('prefilter_dialog_shown', true);
+          print('Prefilter level set globally to: $mode');
+        },
+      );
+
+      if (prefilterConfigured != true && prefilterConfigured != null) {
+        print('User skipped prefilter setup');
+      }
     }
 
     final String modelName =
@@ -693,7 +742,7 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
             .toList();
 
     final config = AIConfig(
-      apiKey: apiKey,
+      apiKey: apiKey!, // apiKey is guaranteed to be non-null at this point
       modelName: modelName,
       maxParallel: 1, // Single screenshot processing
       timeoutSeconds: 120,
@@ -722,8 +771,62 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
             onBatchProcessed: (batch, response) {
               // Handle prefilter blocked screenshots
               if (response.containsKey('prefilter_blocked') && response['prefilter_blocked'] == true) {
-                // Screenshots were blocked by prefilter - update parent widget to refresh UI
-                widget.onScreenshotUpdated?.call();
+                // Screenshots were blocked by prefilter - show dialog to user
+                final prefilterResult = PrefilterResult(
+                  allowSend: false,
+                  detectedCategories: List<String>.from(response['detected_categories'] ?? []),
+                );
+
+                // Show prefilter blocked dialog and wait for user response
+                Future(() async {
+                  final sendAnyway = await PrefilterBlockedDialog.show(
+                    context,
+                    prefilterResult,
+                  );
+
+                  if (sendAnyway == true) {
+                    // User chose to send anyway - re-run processing once without prefilter
+                    print('User overrode prefilter block, re-processing...');
+
+                    // Create new config without prefilter (simulating override)
+                    final overrideConfig = AIConfig(
+                      apiKey: apiKey ?? '',
+                      modelName: modelName,
+                      maxParallel: 1,
+                      timeoutSeconds: 120,
+                      showMessage: ({
+                        required String message,
+                        Color? backgroundColor,
+                        Duration? duration,
+                      }) {
+                        SnackbarService().showSnackbar(
+                          context,
+                          message: message,
+                          backgroundColor: backgroundColor,
+                          duration: duration,
+                        );
+                      },
+                    );
+
+                    // Re-run processing without prefilter check
+                    final overrideResult = await _aiServiceManager
+                        .analyzeScreenshotsDirect(
+                          screenshots: [widget.screenshot],
+                          config: overrideConfig,
+                          onBatchProcessed: (batch, response) {
+                            // This time skip prefilter handling and process normally
+                            _handleAIPositionResult(batch, response);
+                          },
+                          autoAddCollections: autoAddCollections,
+                        );
+
+                    if (overrideResult.success) {
+                      widget.onScreenshotUpdated?.call();
+                    }
+                  }
+                });
+
+                // Don't process further even if user chose to send anyway (handled above)
                 return;
               }
 
@@ -1442,9 +1545,11 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
           ),
         ],
 
+
+
         const SizedBox(height: 24),
         Text(
-          AppLocalizations.of(context)?.aiDetails ?? 'AI Details',
+          AppLocalizations.of(context)?.aiDetails ?? 'AI Analysis',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -1458,61 +1563,189 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
             color: Theme.of(context).colorScheme.outlineVariant,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Prefilter Analysis Section
+              if (widget.screenshot.prefilterResult != null) ...[
+                Row(
                   children: [
-                    Text(
-                      'AI Analysis Status:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color:
-                            Theme.of(context).colorScheme.onSecondaryContainer,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Privacy Filter:',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${widget.screenshot.prefilterLevel ?? 'unknown'}'.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                widget.screenshot.prefilterResult?['allowSend'] == true
+                                    ? Icons.shield
+                                    : Icons.warning,
+                                size: 16,
+                                color: widget.screenshot.prefilterResult?['allowSend'] == true
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.error,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.screenshot.prefilterResult?['allowSend'] == true
+                                ? 'No sensitive content detected'
+                                : 'Sensitive content detected',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                          if (widget.screenshot.prefilterResult?['detectedCategories'] != null &&
+                              (widget.screenshot.prefilterResult?['detectedCategories'] as List<dynamic>).isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: (widget.screenshot.prefilterResult!['detectedCategories'] as List<dynamic>)
+                                  .cast<String>()
+                                  .map((category) => Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.errorContainer,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Theme.of(context).colorScheme.error.withOpacity(0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      category.replaceAll('_', ' '),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: Theme.of(context).colorScheme.onErrorContainer,
+                                      ),
+                                    ),
+                                  ))
+                                  .toList(),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    if (widget.screenshot.aiProcessed &&
-                        widget.screenshot.aiMetadata != null) ...[
-                      Text(
-                        'Model: ${widget.screenshot.aiMetadata!.modelName}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color:
-                              Theme.of(
-                                context,
-                              ).colorScheme.onSecondaryContainer,
-                        ),
-                      ),
-                      Text(
-                        'Analyzed on: ${DateFormat('MMM d, yyyy HH:mm a').format(widget.screenshot.aiMetadata!.processingTime)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color:
-                              Theme.of(
-                                context,
-                              ).colorScheme.onSecondaryContainer,
-                        ),
-                      ),
-                    ],
+                    Icon(
+                      widget.screenshot.prefilterResult?['allowSend'] == true
+                          ? Icons.check_circle
+                          : Icons.warning,
+                      color: widget.screenshot.prefilterResult?['allowSend'] == true
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.error,
+                      size: 20,
+                    ),
                   ],
                 ),
-              ),
-              Icon(
-                widget.screenshot.aiProcessed
-                    ? Icons.check_circle
-                    : Icons.hourglass_empty,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              if (widget.screenshot.aiProcessed)
-                IconButton(
-                  icon: Icon(
-                    Icons.refresh,
-                    color: Theme.of(context).colorScheme.primary,
+                if (widget.screenshot.aiProcessed) ...[
+                  const Divider(height: 16),
+                ],
+              ],
+
+              // AI Analysis Section
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AI Processing Status:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color:
+                                Theme.of(context).colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                        if (widget.screenshot.aiProcessed &&
+                            widget.screenshot.aiMetadata != null) ...[
+                          Text(
+                            'Model: ${widget.screenshot.aiMetadata!.modelName == 'Prefilter' ? 'Privacy Filter (Prefilter)' : widget.screenshot.aiMetadata!.modelName}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                          Text(
+                            'Analyzed on: ${DateFormat('MMM d, yyyy HH:mm a').format(widget.screenshot.aiMetadata!.processingTime)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                          if (widget.screenshot.aiMetadata!.modelName == 'Prefilter') ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Sensitive content detected - blocked from AI analysis',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(context).colorScheme.error,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ] else ...[
+                          Text(
+                            widget.screenshot.prefilterResult?['allowSend'] == false
+                                ? 'Not processed (blocked by privacy filter)'
+                                : 'Not processed yet',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                  tooltip: 'Clear AI analysis to re-process',
-                  onPressed: _clearAndRequestAiReprocessing,
-                ),
+                  Icon(
+                    widget.screenshot.aiProcessed
+                        ? Icons.check_circle
+                        : Icons.hourglass_empty,
+                    color: widget.screenshot.aiProcessed
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 20,
+                  ),
+                  if (widget.screenshot.aiProcessed)
+                    IconButton(
+                      icon: Icon(
+                        Icons.refresh,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      tooltip: 'Clear AI analysis to re-process',
+                      onPressed: _clearAndRequestAiReprocessing,
+                    ),
+                ],
+              ),
             ],
           ),
         ),
@@ -1775,6 +2008,32 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen>
         ],
       ),
     );
+  }
+
+  /// Handle AI processing result when prefilter is overridden
+  void _handleAIPositionResult(List<Screenshot> batch, Map<String, dynamic> response) {
+    // Update the screenshot with processed data (same logic as main callback)
+    final updatedScreenshots = _aiServiceManager.parseAndUpdateScreenshots(batch, response);
+
+    if (updatedScreenshots.isNotEmpty) {
+      final updatedScreenshot = updatedScreenshots.first;
+
+      if (mounted) {
+        setState(() {
+          // Update the screenshot properties
+          widget.screenshot.title = updatedScreenshot.title;
+          widget.screenshot.description = updatedScreenshot.description;
+          widget.screenshot.tags = updatedScreenshot.tags;
+          widget.screenshot.links = updatedScreenshot.links;
+          widget.screenshot.aiProcessed = updatedScreenshot.aiProcessed;
+          widget.screenshot.aiMetadata = updatedScreenshot.aiMetadata;
+
+          // Update local state
+          _tags = List.from(updatedScreenshot.tags);
+          _descriptionController.text = updatedScreenshot.description ?? '';
+        });
+      }
+    }
   }
 
   Future<void> _processScreenshotWithOCR() async {

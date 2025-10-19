@@ -57,6 +57,23 @@ class AIServiceManager {
     );
   }
 
+  // Direct analysis without prefilter checking (for override scenarios)
+  Future<AIResult<Map<String, dynamic>>> analyzeScreenshotsDirect({
+    required List<Screenshot> screenshots,
+    required AIConfig config,
+    required BatchProcessedCallback onBatchProcessed,
+    List<Map<String, String?>>? autoAddCollections,
+  }) async {
+    // Create a new service instance with the provided config to bypass prefilter
+    final directService = ScreenshotAnalysisService(config, skipPrefilter: true);
+
+    return await directService.analyzeScreenshots(
+      screenshots: screenshots,
+      onBatchProcessed: onBatchProcessed,
+      autoAddCollections: autoAddCollections,
+    );
+  }
+
   List<Screenshot> parseAndUpdateScreenshots(
     List<Screenshot> screenshots,
     Map<String, dynamic> response,

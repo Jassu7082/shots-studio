@@ -12,6 +12,8 @@ import 'package:shots_studio/utils/ai_error_utils.dart';
 import 'package:shots_studio/utils/json_utils.dart';
 import 'package:shots_studio/utils/ai_language_config.dart';
 import 'package:shots_studio/services/xmp_metadata_service.dart';
+import 'package:shots_studio/services/prefilter_service.dart';
+
 
 class ScreenshotAnalysisService extends AIService {
   // Track network errors to prevent multiple notifications
@@ -21,8 +23,10 @@ class ScreenshotAnalysisService extends AIService {
 
   // Track when the last successful request was made
   DateTime? _lastSuccessfulRequestTime;
+  // Flag to skip prefilter checking (for override scenarios)
+  final bool _skipPrefilter;
 
-  ScreenshotAnalysisService(super.config);
+  ScreenshotAnalysisService(super.config, {bool skipPrefilter = false}) : _skipPrefilter = skipPrefilter;
 
   @override
   void reset() {
@@ -84,6 +88,24 @@ class ScreenshotAnalysisService extends AIService {
             'cancelled': true,
           });
           break;
+        }
+
+        // Run prefilter check before preparing request data (unless skipped)
+        if (!_skipPrefilter) {
+          final prefilterResult = await _runPrefilterCheck(unprocessedBatch);
+          if (prefilterResult.blocked) {
+            // Screenshot is blocked by prefilter - return blocked status
+            onBatchProcessed(
+              batch,
+              {
+                'prefilter_blocked': true,
+                'error': 'Screenshot blocked by prefilter - contains sensitive content',
+                'statusCode': 423, // Locked - custom status for prefilter block
+                'detected_categories': prefilterResult.result?.detectedCategories ?? [],
+              },
+            );
+            continue; // Skip this batch
+          }
         }
 
         final requestData = await _prepareRequestData(
@@ -720,6 +742,108 @@ class ScreenshotAnalysisService extends AIService {
     });
   }
 
+  /// Run prefilter check on a batch of screenshots
+  /// Returns a result indicating if processing should be blocked and the first detected result
+  Future<_PrefilterCheckResult> _runPrefilterCheck(List<Screenshot> screenshots) async {
+    final stopwatch = Stopwatch()..start();
+    final prefs = await SharedPreferences.getInstance();
+    final prefilterLevel = prefs.getString('prefilter_level') ?? 'light'; // Default to light if not set
+    final prefilterService = PrefilterService();
+
+    bool foundBlocked = false;
+    PrefilterResult? firstBlockResult;
+    String? blockedScreenshotId;
+
+    for (final screenshot in screenshots) {
+      try {
+        final analysisResult = await prefilterService.analyzeScreenshot(screenshot);
+
+        // Always store prefilter results in screenshot metadata
+        final updatedScreenshot = screenshot.copyWith(
+          prefilterLevel: prefilterLevel,
+          prefilterResult: {
+            'allowSend': analysisResult.prefilterResult.allowSend,
+            'detectedCategories': analysisResult.prefilterResult.detectedCategories,
+            'confidence': analysisResult.prefilterResult.confidence,
+            'processedAt': DateTime.now().toIso8601String(),
+          },
+        );
+
+        // Update the screenshot in the list (since screenshots are passed by reference)
+        screenshot.prefilterLevel = updatedScreenshot.prefilterLevel;
+        screenshot.prefilterResult = updatedScreenshot.prefilterResult;
+
+        if (!analysisResult.prefilterResult.allowSend) {
+          // Found sensitive content, mark as processed with sensitive data metadata
+          final sensitiveMetadata = AiMetaData(
+            modelName: 'Prefilter',
+            processingTime: DateTime.now(),
+          );
+
+          // Create updated screenshot with sensitive data title and tag
+          final sensitiveScreenshot = screenshot.copyWith(
+            title: 'Sensitive Data',
+            aiProcessed: true,
+            aiMetadata: sensitiveMetadata,
+            tags: [...screenshot.tags, 'sensitive data'], // Add sensitive data tag
+            prefilterLevel: prefilterLevel,
+            prefilterResult: {
+              'allowSend': analysisResult.prefilterResult.allowSend,
+              'detectedCategories': analysisResult.prefilterResult.detectedCategories,
+              'confidence': analysisResult.prefilterResult.confidence,
+              'processedAt': DateTime.now().toIso8601String(),
+            },
+          );
+
+          // Update the screenshot in the list
+          screenshot.title = sensitiveScreenshot.title;
+          screenshot.aiProcessed = sensitiveScreenshot.aiProcessed;
+          screenshot.aiMetadata = sensitiveScreenshot.aiMetadata;
+          screenshot.tags = sensitiveScreenshot.tags;
+          screenshot.prefilterLevel = sensitiveScreenshot.prefilterLevel;
+          screenshot.prefilterResult = sensitiveScreenshot.prefilterResult;
+
+          foundBlocked = true;
+          if (firstBlockResult == null) {
+            firstBlockResult = analysisResult.prefilterResult;
+            blockedScreenshotId = screenshot.id;
+          }
+        }
+      } catch (e) {
+        print('Error running prefilter on screenshot ${screenshot.id}: $e');
+        // Fail-open: store empty prefilter result but allow processing if prefilter fails
+        final updatedScreenshot = screenshot.copyWith(
+          prefilterLevel: prefilterLevel,
+          prefilterResult: {
+            'error': e.toString(),
+            'allowSend': true, // Fail-open
+            'detectedCategories': [],
+            'processedAt': DateTime.now().toIso8601String(),
+          },
+        );
+        screenshot.prefilterLevel = updatedScreenshot.prefilterLevel;
+        screenshot.prefilterResult = updatedScreenshot.prefilterResult;
+      }
+    }
+
+    // Log timing for performance monitoring
+    stopwatch.stop();
+    final elapsedTime = stopwatch.elapsedMilliseconds;
+    print('Prefilter check completed in ${elapsedTime}ms for ${screenshots.length} screenshots (${foundBlocked ? "BLOCKED due to sensitive content" : "ALLOWED"})');
+
+    if (foundBlocked) {
+      // Return blocking result for the first blocked screenshot
+      return _PrefilterCheckResult(
+        blocked: true,
+        result: firstBlockResult!,
+        screenshotId: blockedScreenshotId!,
+      );
+    }
+
+    // No sensitive content detected, allow processing
+    return _PrefilterCheckResult(blocked: false);
+  }
+
   /// Log analytics for Gemma processing if applicable
   Future<void> _logGemmaAnalyticsIfApplicable(
     Map<String, dynamic> result,
@@ -768,4 +892,17 @@ class ScreenshotAnalysisService extends AIService {
       print('Error logging Gemma analytics: $e');
     }
   }
+}
+
+  /// Helper class for prefilter check results
+class _PrefilterCheckResult {
+  final bool blocked;
+  final PrefilterResult? result;
+  final String? screenshotId;
+
+  _PrefilterCheckResult({
+    required this.blocked,
+    this.result,
+    this.screenshotId,
+  });
 }

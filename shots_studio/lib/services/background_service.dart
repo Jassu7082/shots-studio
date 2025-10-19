@@ -13,6 +13,8 @@ import 'package:shots_studio/services/screenshot_analysis_service.dart';
 import 'package:shots_studio/utils/ai_provider_config.dart';
 import 'package:shots_studio/services/server_message_service.dart';
 import 'package:shots_studio/services/notification_service.dart';
+import 'package:shots_studio/services/prefilter_service.dart';
+import 'package:shots_studio/services/ml_prefilter_service.dart';
 
 @pragma('vm:entry-point')
 class BackgroundProcessingService {
@@ -113,6 +115,10 @@ class BackgroundProcessingService {
       DartPluginRegistrant.ensureInitialized();
 
       _serviceRunning = true;
+
+      // Initialize ML prefilter service
+      final mlPrefilterService = getMLPrefilterService();
+      await mlPrefilterService.initializeModels();
 
       // Initialize flutter_local_notifications for custom notifications
       final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -227,14 +233,24 @@ class BackgroundProcessingService {
         }
 
         try {
-          // Update notification to show processing started
+          // Parse input data
           final data = Map<String, dynamic>.from(event);
           final screenshotsJson = data['screenshots'] as String;
-          final List<dynamic> screenshotListDynamic = jsonDecode(
-            screenshotsJson,
-          );
+          final List<dynamic> screenshotListDynamic = jsonDecode(screenshotsJson);
           final totalCount = screenshotListDynamic.length;
+          final maxParallel = data['maxParallel'] as int? ?? 1;
 
+          // Create prefilter service instances
+          final mlPrefilterService = getMLPrefilterService();
+          final prefilterService = PrefilterService();
+
+          // Convert JSON to Screenshot objects
+          final List<Screenshot> screenshots =
+              screenshotListDynamic.map((dynamic json) {
+            return Screenshot.fromJson(json as Map<String, dynamic>);
+          }).toList();
+
+          // Update notification to show processing started
           updateCustomNotification(
             title: 'Processing Screenshots',
             content: 'Started processing $totalCount screenshots',
@@ -244,6 +260,7 @@ class BackgroundProcessingService {
             ongoing: true,
           );
 
+          // Process screenshots in batches with prefiltering
           await _processScreenshots(service, event, updateCustomNotification);
         } catch (e) {
           updateCustomNotification(
@@ -660,15 +677,23 @@ class BackgroundProcessingService {
 
       service.stopSelf();
     } catch (e) {
+      print('❌ Background processing error: $e');
+      
+      // Show error notification
       updateNotification(
         title: 'Processing Error',
         content: 'Error: ${e.toString()}',
         ongoing: false,
       );
-      service.invoke(CHANNEL_ERROR, {'error': e.toString()});
+      
+      // Send error to app
+      service.invoke(CHANNEL_ERROR, {
+        'error': e.toString(),
+        'type': 'processing_error',
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
 
-      // Stop the service on error as well
-      // Allow a brief delay for the notification to be shown
+      // Brief delay for notification
       await Future.delayed(const Duration(seconds: 2));
 
       // Clean up processing state and safety monitoring
